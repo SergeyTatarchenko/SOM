@@ -6,12 +6,8 @@
 *************************************************/
 #ifndef OBJ_DATA_H_
 #define	OBJ_DATA_H_
-
 /*-----------------------------------------------*/
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "semphr.h"
+#include "RTOS.h"
 /*----------------------------------------------*/
 #include "string.h"
 #include "stdint.h"
@@ -81,7 +77,7 @@ typedef union{
 		unsigned mode:1;
 		unsigned hwobj:1;
 		unsigned debug:1;
-		unsigned rez4:1;
+		unsigned model_on:1;
 		unsigned rez5:1;
 		unsigned rez6:1;
 		unsigned rez7:1;
@@ -113,7 +109,8 @@ typedef union{
 #define obj_hard	1
 /*---------------------------------------------*/
 #define this_obj(obj_id)				(objDefault + obj_id)
-#define obj_set_visible(obj_id,state)	this_obj(obj_id)->obj_visible = state
+#define obj_set_visible(obj_id)			this_obj(obj_id)->obj_visible = TRUE
+#define obj_set_unvisible(obj_id)		this_obj(obj_id)->obj_visible = FALSE
 #define obj_update(obj_id)				obj_handlers[obj_id](this_obj(obj_id))												
 #define obj_state_on(obj_id)			this_obj(obj_id)->obj_state = TRUE;	\
 										OBJ_Event(obj_id)
@@ -149,26 +146,29 @@ typedef union{
 #define USART_DATA_TYPE1	1
 #define USART_DATA_TYPE2	2
 
+#include "obj_model_config.h"
 /*-----------------------------------------------*/
 /*         system arrays for USART               */
 /*-----------------------------------------------*/
-
-/* data array for usart obj transfer */
-extern uint8_t	usart_data_transmit_array[USART1_DEFAULT_BUF_SIZE];
-extern uint8_t	usart_data_stream[USART_STREAM_SIZE];
-/* data array for usart obj receive */
-extern uint8_t usart_data_receive_array[USART1_DEFAULT_BUF_SIZE];
-/*mutex  to perform currect usart transmit */
-extern xSemaphoreHandle xMutex_USART_BUSY;
-/*queue of messages from usart module*/
-extern xQueueHandle usart_receive_buffer;
-/*usart data byte counter */
-extern uint8_t usart_irq_counter;
+#ifdef USART_MODE
+	/* data array for usart obj transfer */
+	extern uint8_t	usart_data_transmit_array[USART1_DEFAULT_BUF_SIZE];
+	extern uint8_t	usart_data_stream[USART_STREAM_SIZE];
+	/* data array for usart obj receive */
+	extern uint8_t usart_data_receive_array[USART1_DEFAULT_BUF_SIZE];
+	/*mutex  to perform currect usart transmit */
+	extern xSemaphoreHandle xMutex_USART_BUSY;
+	/*queue of messages from usart module*/
+	extern xQueueHandle usart_receive_buffer;
+	/*usart data byte counter */
+	extern uint8_t usart_irq_counter;
+#endif
 
 /*-----------------------------------------------*/
 /*-----------------------------------------------*/
 /*           struct for CAN frame                */
 /*-----------------------------------------------*/
+
 /*-----------------------------------------------*/
 /*         system arrays for CAN                 */
 /*-----------------------------------------------*/
@@ -178,7 +178,7 @@ extern uint8_t usart_irq_counter;
 /*-----------------------------------------------*/
 /*--------------Common variables-----------------*/
 /*-----------------------------------------------*/
-#include "obj_model_config.h"
+
 /*-----------------------------------------------*/
 /*pointer to memory space of objects*/
 extern OBJ_STRUCT *objDefault;
@@ -193,8 +193,10 @@ extern uint32_t num_of_obj;
 	#error "HARDWARE_OBJECT is undefined"
 #endif
 
-#ifndef USART_DATA_FAST
-	#error "USART_DATA_FAST is undefined"
+#ifdef USART_MODE
+	#ifndef USART_DATA_FAST
+		#error "USART_DATA_FAST is undefined"
+	#endif
 #endif
 
 #if	HARDWARE_OBJECT == TRUE
@@ -204,7 +206,6 @@ extern uint32_t num_of_obj;
 #if USART_DATA_FAST == TRUE
 	extern uint8_t USART_DATA[sizeof(USART_FRAME)*num_of_all_obj];	
 #endif
-void Dummy_Handler(OBJ_STRUCT *obj);
 /*-----------------------------------------------*/
 /*-----------------------------------------------*/
 /*----------Common functions prototypes----------*/
@@ -236,8 +237,10 @@ extern uint8_t Check_CRC(USART_FRAME *Rx_obj_c);
 /*-----------------------------------------------*/
 extern void obj_snap(obj_init_struct* _model_init_,int _model_size_);
 
+/*weak functions prototypes*/
 /*usart transfer , board specific */
 __weak void send_usart_message(uint8_t *message,uint32_t buf_size);
-
+/*empty handler (can be changed)*/
+__weak void Dummy_Handler(OBJ_STRUCT *obj);
 /*-----------------------------------------------*/
 #endif

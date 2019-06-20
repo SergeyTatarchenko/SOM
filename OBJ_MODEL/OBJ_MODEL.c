@@ -19,22 +19,22 @@ void ((*obj_handlers[num_of_all_obj+1]))(OBJ_STRUCT*);
 uint32_t num_of_obj;
 /*array of pointers to hardware objects*/
 OBJ_STRUCT *HW_OBJ[NUM_OF_HWOBJ];
-/*pointer to an array of frames in the message for USART*/
-uint8_t USART_DATA[sizeof(USART_FRAME)*num_of_all_obj];
 
-
-/* data array for usart obj transfer */
-uint8_t	usart_data_transmit_array[USART1_DEFAULT_BUF_SIZE];
-uint8_t	usart_data_stream[USART_STREAM_SIZE];
-/* data array for usart obj receive */
-uint8_t usart_data_receive_array[USART1_DEFAULT_BUF_SIZE];
-/*mutex  to perform currect usart transmit */
-xSemaphoreHandle xMutex_USART_BUSY;
-/*queue of messages from usart module*/
-xQueueHandle usart_receive_buffer;
-/*usart data byte counter */
-uint8_t usart_irq_counter;
-
+#ifdef USART_MODE
+	/*pointer to an array of frames in the message for USART*/
+	uint8_t USART_DATA[sizeof(USART_FRAME)*num_of_all_obj];
+	/* data array for usart obj transfer */
+	uint8_t	usart_data_transmit_array[USART1_DEFAULT_BUF_SIZE];
+	uint8_t	usart_data_stream[USART_STREAM_SIZE];
+	/* data array for usart obj receive */
+	uint8_t usart_data_receive_array[USART1_DEFAULT_BUF_SIZE];
+	/*mutex  to perform currect usart transmit */
+	xSemaphoreHandle xMutex_USART_BUSY;
+	/*queue of messages from usart module*/
+	xQueueHandle usart_receive_buffer;
+	/*usart data byte counter */
+	uint8_t usart_irq_counter;
+#endif
 /*-----------------------------------------------*/
 
 /*init obj model*/
@@ -298,11 +298,14 @@ void Rx_OBJ_Data(USART_FRAME *mes){
 	}
 }
 
+/*weak functions, board specific*/
 
+/*usart message*/
 __weak void send_usart_message(uint8_t *message,uint32_t buf_size){
 	
 }
-void Dummy_Handler(OBJ_STRUCT *obj){
+/*empty handler*/
+__weak void Dummy_Handler(OBJ_STRUCT *obj){
 	
 }
 
