@@ -168,10 +168,38 @@ typedef union{
 /*-----------------------------------------------*/
 /*           struct for CAN frame                */
 /*-----------------------------------------------*/
+#define can_tick_5ms	5
+#define can_tick_10ms	10
+#define can_tick_25ms	25
+#define can_tick_50ms	50
+#define can_tick_100ms	100
+#define can_tick_500ms	500
+#define can_tick_1s		1000
+/*-----------------------------------------------*/
+#define can_obj_mask	0x000000FF
+#define can_id_mask		0x00003F00
+#define can_net_mask	0x0000C000
+
+/*CAN structure for obj layer message*/
+typedef struct{
+  
+	uint32_t id;			/* message id  */
+	uint8_t  data[8];		/* data obj field */
+	uint8_t  len;  			/* data lenght */
+	
+}CAN_OBJ_FRAME;  
+
+
+extern xQueueHandle can_receive_buffer;
+extern xQueueHandle can_transmit_buffer;
 
 /*-----------------------------------------------*/
 /*         system arrays for CAN                 */
 /*-----------------------------------------------*/
+
+CAN_OBJ_FRAME can_obj_create_message (int obj_id);
+uint32_t can_queue_obj_fill(CAN_OBJ_FRAME message);
+void can_obj_send_routine(uint32_t tick);
 /*-----------------------------------------------*/
 
 

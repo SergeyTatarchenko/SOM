@@ -240,6 +240,16 @@ void FAST_Upd_All_OBJ_USART(void){
 }
 #endif
 
+
+
+/*create CAN message with extended ID, return message*/
+CAN_OBJ_FRAME can_obj_create_message (int obj_id){
+	CAN_OBJ_FRAME message;
+
+	return message;
+}
+
+/**/
 /* Receive Data Obj */
 void Rx_OBJ_Data(USART_FRAME *mes){
 	
