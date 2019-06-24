@@ -11,6 +11,7 @@
 /*----------------------------------------------*/
 #include "string.h"
 #include "stdint.h"
+
 /*-----------------------------------------------*/
 /*-----------------------------------------------*/
 /*-----------------------------------------------*/
@@ -58,6 +59,7 @@ typedef	struct{
 }OBJ_STRUCT;
 #pragma pack(pop)
 
+#pragma pack(push,1)
 /*incompressible struct*/
 typedef struct {
 	uint8_t id;
@@ -67,6 +69,7 @@ typedef struct {
 	void (*handler_pointer)(OBJ_STRUCT*);
 	/*add initial state and ...*/
 }obj_init_struct;
+#pragma pack(pop)
 
 
 #pragma pack(push,1)
@@ -268,6 +271,8 @@ extern void obj_snap(obj_init_struct* _model_init_,int _model_size_);
 /*weak functions prototypes*/
 /*usart transfer , board specific */
 __weak void send_usart_message(uint8_t *message,uint32_t buf_size);
+/*CAN transfer, board specific*/
+__weak void send_can_message(CAN_OBJ_FRAME message);
 /*empty handler (can be changed)*/
 __weak void Dummy_Handler(OBJ_STRUCT *obj);
 /*-----------------------------------------------*/

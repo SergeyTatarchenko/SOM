@@ -245,7 +245,12 @@ void FAST_Upd_All_OBJ_USART(void){
 /*create CAN message with extended ID, return message*/
 CAN_OBJ_FRAME can_obj_create_message (int obj_id){
 	CAN_OBJ_FRAME message;
-
+	
+	message.id = (((this_obj(obj_id)->id[0])&can_obj_mask)|
+				 (((uint32_t)ID_NETWORK<<8)&can_id_mask)  |
+				 (((uint32_t)ID_DEVICE<<14)&can_net_mask));
+	message.len = 8;
+	memcpy(&message.data,&(this_obj(obj_id)->obj_field),sizeof(message.data));
 	return message;
 }
 
@@ -313,6 +318,10 @@ void Rx_OBJ_Data(USART_FRAME *mes){
 /*usart message*/
 __weak void send_usart_message(uint8_t *message,uint32_t buf_size){
 	
+}
+/*CAN message*/
+__weak void send_can_message(CAN_OBJ_FRAME message){
+
 }
 /*empty handler*/
 __weak void Dummy_Handler(OBJ_STRUCT *obj){

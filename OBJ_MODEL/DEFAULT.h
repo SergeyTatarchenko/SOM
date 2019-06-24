@@ -4,7 +4,6 @@
 #include "OBJ_MODEL.h"
 
 /*-------------------------------------------------*/
-
 #define	IND_obj_NULL			0x00
 #define	IND_obj_END				0xFF
 
