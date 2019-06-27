@@ -120,7 +120,7 @@ typedef union{
 #define obj_state_off(obj_id)			this_obj(obj_id)->obj_state = FALSE; \
 										OBJ_Event(obj_id)
 
-
+#include "obj_model_config.h"
 /*-----------------------------------------------*/
 /*-----------struct for USART frame--------------*/
 /*-----------------------------------------------*/
@@ -144,12 +144,11 @@ typedef union{
 	#define USART1_DEFAULT_BUF_SIZE LEN_USART_MSG_OBJ
 #endif
 
-#define USART_STREAM_SIZE	(USART1_DEFAULT_BUF_SIZE*256)
+#define USART_STREAM_SIZE	(USART1_DEFAULT_BUF_SIZE*num_of_all_obj)
 
 #define USART_DATA_TYPE1	1
 #define USART_DATA_TYPE2	2
 
-#include "obj_model_config.h"
 /*-----------------------------------------------*/
 /*         system arrays for USART               */
 /*-----------------------------------------------*/
