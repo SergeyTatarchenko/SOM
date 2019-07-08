@@ -11,7 +11,6 @@
 /*----------------------------------------------*/
 #include "string.h"
 #include "stdint.h"
-
 /*-----------------------------------------------*/
 /*-----------------------------------------------*/
 /*-----------------------------------------------*/
@@ -26,6 +25,25 @@
 #define LEN_OBJ					(LEN_INDEX + LEN_DATA + LEN_CRC)
 #define	LEN_USART_MSG_OBJ		(LEN_NETW + LEN_ID + LEN_INDEX + LEN_DATA + LEN_CRC)
 /*-----------------------------------------------*/
+
+/*enum object description*/
+typedef enum{
+	
+	IND_obj_SWC = 1,
+	IND_obj_CWS = 2,
+	IND_obj_CAS = 3,
+	IND_obj_COM = 4
+	
+}OBJECT_CLASS;
+/*-----------------------------------------------*/
+typedef enum{
+	
+	obj_soft = 0,
+	obj_hard  = 1	
+
+}OBJECT_TYPE;
+/*-----------------------------------------------*/
+
 #pragma pack(push,1)
 typedef	struct{
 	/* ID 2 byte*/
@@ -63,8 +81,8 @@ typedef	struct{
 /*incompressible struct*/
 typedef struct {
 	uint8_t id;
-	uint8_t obj_class;
-	uint8_t obj_type;
+	OBJECT_CLASS obj_class;
+	OBJECT_TYPE obj_type;
 	uint16_t HW_adress;
 	void (*handler_pointer)(OBJ_STRUCT*);
 	/*add initial state and ...*/
@@ -88,11 +106,6 @@ typedef union{
 }BOARD_STATE;
 #pragma pack(pop)
 
-/*                 object type                   */
-#define IND_obj_COM				4	/*data command*/
-#define IND_obj_CAS				3	/*control and status*/
-#define IND_obj_CWS				2	/*control without status*/
-#define IND_obj_SWC				1	/*status without control*/	
 /*---------------------------------------------*/
 #define event_mask				0x02
 #define state_mask				0x01
@@ -107,9 +120,6 @@ typedef union{
 #define obj_visible				obj_field.default_field.control_byte.bit.visible
 #define obj_hardware			obj_field.default_field.control_byte.bit.hardware
 #define obj_data				obj_field.data_field.data
-/*---------------------------------------------*/
-#define obj_soft	0
-#define obj_hard	1
 /*---------------------------------------------*/
 #define this_obj(obj_id)				(objDefault + obj_id)
 #define obj_set_visible(obj_id)			this_obj(obj_id)->obj_visible = TRUE
