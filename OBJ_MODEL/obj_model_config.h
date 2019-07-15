@@ -5,8 +5,8 @@
 #define TRUE    1
 #define FALSE   0
 
-#define USART_MODE  0
-#define CAN_MODE    1
+#define USART_MODE	TRUE
+#define CAN_MODE    FALSE
 
 #define DEBUG_MODE	TRUE
 
@@ -16,10 +16,9 @@
 #define	num_of_all_obj		30
 #define MES_BUF_SIZE		20
 
-#ifdef HARDWARE_OBJECT
+#if HARDWARE_OBJECT == TRUE
 	#define NUM_OF_HWOBJ    20
 #endif
-#define obj_limit	40
 
 #ifndef TARGET
 	#include "DEFAULT.h"

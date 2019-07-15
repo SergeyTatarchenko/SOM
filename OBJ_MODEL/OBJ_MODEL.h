@@ -1,7 +1,7 @@
 /*************************************************
 * File Name          : OBJ_MODEL.h
 * Author             : Tatarchenko S.
-* Version            : v 1.2
+* Version            : v 1.3
 * Description        : header for OBJ_MODEL.c 
 *************************************************/
 #ifndef OBJ_DATA_H_
@@ -11,8 +11,6 @@
 /*----------------------------------------------*/
 #include "string.h"
 #include "stdint.h"
-/*-----------------------------------------------*/
-/*-----------------------------------------------*/
 /*-----------------------------------------------*/
 /*------------object description-----------------*/
 /*-----------------------------------------------*/
@@ -26,24 +24,42 @@
 #define	LEN_USART_MSG_OBJ		(LEN_NETW + LEN_ID + LEN_INDEX + LEN_DATA + LEN_CRC)
 /*-----------------------------------------------*/
 
-/*enum object description*/
+/* enums to describe types and priorities of objects*/
 typedef enum{
 	
+	/*status without control, low priority*/
 	IND_obj_SWC = 1,
+	/*control without control, medium priority*/
 	IND_obj_CWS = 2,
+	/*control with status, high priority*/
 	IND_obj_CAS = 3,
+	/*object with extended data field, high priority*/
 	IND_obj_COM = 4
 	
 }OBJECT_CLASS;
-/*-----------------------------------------------*/
+
 typedef enum{
-	
+	/*software object, default object*/	
 	obj_soft = 0,
-	obj_hard  = 1	
-
+	/*hardware object, use special hanlder*/
+	obj_hard  = 1
+	
 }OBJECT_TYPE;
-/*-----------------------------------------------*/
 
+typedef struct{
+	
+	int system_priority;
+	int tx_priority;
+	int rx_priority;
+	int user_priority;
+	
+	unsigned short stack_tx_rx;
+	unsigned short stack_user;
+
+}OBJ_MODEL_PRIORITY;
+/*-----------------------------------------------
+*********OBJECT STRUCTURE DESCRIPTION***********
+-----------------------------------------------*/
 #pragma pack(push,1)
 typedef	struct{
 	/* ID 2 byte*/
@@ -76,18 +92,41 @@ typedef	struct{
 	}obj_field;	
 }OBJ_STRUCT;
 #pragma pack(pop)
-
+/*-----------------------------------------------
+**STRUCTURE FOR INITIALIZING OBJECTS IN MEMORY**
+-----------------------------------------------*/
 #pragma pack(push,1)
-/*incompressible struct*/
 typedef struct {
 	uint8_t id;
 	OBJECT_CLASS obj_class;
 	OBJECT_TYPE obj_type;
 	uint16_t HW_adress;
 	void (*handler_pointer)(OBJ_STRUCT*);
-	/*add initial state and ...*/
 }obj_init_struct;
 #pragma pack(pop)
+
+/*-----------------------------------------------
+*********STRUCT FOR USART TRANSMIT**************
+-----------------------------------------------*/
+#pragma pack(push,1)
+typedef union{
+	struct{
+        uint8_t id_netw;
+        uint8_t id_modul;
+        OBJ_STRUCT object;
+        uint16_t crc;
+    }d_struct;
+    uint8_t byte[LEN_USART_MSG_OBJ];
+}USART_FRAME;
+#pragma pack(pop)
+/*-----------------------------------------------
+************STRUCT FOR CAN TRANSMIT**************
+-----------------------------------------------*/
+typedef struct{
+	uint32_t id;	
+	uint8_t  data[8];	
+	uint8_t  len;  				
+}CAN_OBJ_FRAME;  
 
 
 #pragma pack(push,1)
@@ -106,20 +145,19 @@ typedef union{
 }BOARD_STATE;
 #pragma pack(pop)
 
+#include "obj_model_config.h"
 /*---------------------------------------------*/
-#define event_mask				0x02
-#define state_mask				0x01
-#define hardware_mask			0x80
-/*---------------------------------------------*/
-#define typeof_obj				id[1]
-#define status_field 			obj_field.default_field.control_byte.byte
-#define obj_event				obj_field.default_field.control_byte.bit.event
-#define obj_state				obj_field.default_field.control_byte.bit.state
-#define obj_value				obj_field.default_field.value
-#define hardware_adress			obj_field.default_field.HW_adress
-#define obj_visible				obj_field.default_field.control_byte.bit.visible
-#define obj_hardware			obj_field.default_field.control_byte.bit.hardware
-#define obj_data				obj_field.data_field.data
+#define idof_obj						id[0]
+#define typeof_obj						id[1]
+#define status_field 					obj_field.default_field.control_byte.byte
+#define obj_event						obj_field.default_field.control_byte.bit.event
+#define obj_state						obj_field.default_field.control_byte.bit.state
+#define obj_value						obj_field.default_field.value
+#define hardware_adress					obj_field.default_field.HW_adress
+#define obj_visible						obj_field.default_field.control_byte.bit.visible
+#define obj_hardware					obj_field.default_field.control_byte.bit.hardware
+#define obj_data						obj_field.data_field.data
+
 /*---------------------------------------------*/
 #define this_obj(obj_id)				(objDefault + obj_id)
 #define obj_set_visible(obj_id)			this_obj(obj_id)->obj_visible = TRUE
@@ -129,40 +167,32 @@ typedef union{
 										OBJ_Event(obj_id)
 #define obj_state_off(obj_id)			this_obj(obj_id)->obj_state = FALSE; \
 										OBJ_Event(obj_id)
-
-#include "obj_model_config.h"
+/*---------------------------------------------*/
+#define USART1_DEFAULT_BUF_SIZE 		LEN_USART_MSG_OBJ
+#define USART_STREAM_SIZE				(USART1_DEFAULT_BUF_SIZE*num_of_all_obj)
+#define USART_DATA_TYPE1				1
+#define USART_DATA_TYPE2				2
+/*---------------------------------------------*/
+#define can_tick_5ms	5
+#define can_tick_10ms	10
+#define can_tick_25ms	25
+#define can_tick_50ms	50
+#define can_tick_100ms	100
+#define can_tick_500ms	500
+#define can_tick_1s		1000
 /*-----------------------------------------------*/
-/*-----------struct for USART frame--------------*/
-/*-----------------------------------------------*/
-#pragma pack(push,1)
-typedef union{
-	struct{
-        uint8_t id_netw;
-        uint8_t id_modul;
-        OBJ_STRUCT object;
-        uint16_t crc;
-    }d_struct;
-    uint8_t byte[LEN_USART_MSG_OBJ];
-}USART_FRAME;
-#pragma pack(pop)
+#define can_obj_mask	0x000000FF
+#define can_id_mask		0x00003F00
+#define can_net_mask	0x0000C000
 
 
-#define USART1_DEFAULT_BUF_SIZE 14
-	
-#ifdef	LEN_USART_MSG_OBJ
-	#undef USART1_DEFAULT_BUF_SIZE
-	#define USART1_DEFAULT_BUF_SIZE LEN_USART_MSG_OBJ
+#ifndef USART_DATA_FAST
+	#error "USART_DATA_FAST is undefined"
 #endif
 
-#define USART_STREAM_SIZE	(USART1_DEFAULT_BUF_SIZE*num_of_all_obj)
-
-#define USART_DATA_TYPE1	1
-#define USART_DATA_TYPE2	2
-
 /*-----------------------------------------------*/
-/*         system arrays for USART               */
-/*-----------------------------------------------*/
-#ifdef USART_MODE
+
+#if USART_MODE == TRUE
 	/* data array for usart obj transfer */
 	extern uint8_t	usart_data_transmit_array[USART1_DEFAULT_BUF_SIZE];
 	extern uint8_t	usart_data_stream[USART_STREAM_SIZE];
@@ -176,68 +206,23 @@ typedef union{
 	extern uint8_t usart_irq_counter;
 #endif
 
-/*-----------------------------------------------*/
-/*-----------------------------------------------*/
-/*           struct for CAN frame                */
-/*-----------------------------------------------*/
-#define can_tick_5ms	5
-#define can_tick_10ms	10
-#define can_tick_25ms	25
-#define can_tick_50ms	50
-#define can_tick_100ms	100
-#define can_tick_500ms	500
-#define can_tick_1s		1000
-/*-----------------------------------------------*/
-#define can_obj_mask	0x000000FF
-#define can_id_mask		0x00003F00
-#define can_net_mask	0x0000C000
+#if CAN_MODE == TRUE
+	extern xQueueHandle can_receive_buffer;
+	extern xQueueHandle can_transmit_buffer;
+	CAN_OBJ_FRAME can_obj_create_message (int obj_id);
+	uint32_t can_queue_obj_fill(CAN_OBJ_FRAME message);
+	void can_obj_send_routine(uint32_t tick);
+#endif
 
-/*CAN structure for obj layer message*/
-typedef struct{
-  
-	uint32_t id;			/* message id  */
-	uint8_t  data[8];		/* data obj field */
-	uint8_t  len;  			/* data lenght */
-	
-}CAN_OBJ_FRAME;  
+/*-----------------------------------------------
+***************COMMON VARIABLES******************
+-----------------------------------------------*/
 
-
-extern xQueueHandle can_receive_buffer;
-extern xQueueHandle can_transmit_buffer;
-
-/*-----------------------------------------------*/
-/*         system arrays for CAN                 */
-/*-----------------------------------------------*/
-
-CAN_OBJ_FRAME can_obj_create_message (int obj_id);
-uint32_t can_queue_obj_fill(CAN_OBJ_FRAME message);
-void can_obj_send_routine(uint32_t tick);
-/*-----------------------------------------------*/
-
-
-/*-----------------------------------------------*/
-/*--------------Common variables-----------------*/
-/*-----------------------------------------------*/
-
-/*-----------------------------------------------*/
-/*pointer to memory space of objects*/
 extern OBJ_STRUCT *objDefault;
-/*array of object handlers*/
 extern void ((*obj_handlers[num_of_all_obj +1]))(OBJ_STRUCT*);
-
 extern BOARD_STATE	board_state;
-
 extern uint32_t num_of_obj;
-
-#ifndef HARDWARE_OBJECT
-	#error "HARDWARE_OBJECT is undefined"
-#endif
-
-#ifdef USART_MODE
-	#ifndef USART_DATA_FAST
-		#error "USART_DATA_FAST is undefined"
-	#endif
-#endif
+extern OBJ_MODEL_PRIORITY task_priority;
 
 #if	HARDWARE_OBJECT == TRUE
 	extern OBJ_STRUCT *HW_OBJ[NUM_OF_HWOBJ];
@@ -246,43 +231,54 @@ extern uint32_t num_of_obj;
 #if USART_DATA_FAST == TRUE
 	extern uint8_t USART_DATA[sizeof(USART_FRAME)*num_of_all_obj];	
 #endif
-/*-----------------------------------------------*/
-/*-----------------------------------------------*/
-/*----------Common functions prototypes----------*/
-/*-----------------------------------------------*/
 
-/*init obj model*/
+/*-----------------------------------------------
+*********OBJ MODEL FUNCTION PROTOTYPES***********
+-----------------------------------------------*/
+/*init obj model memory*/
 void OBJ_Init(void);
+/*init obj model tasks*/
+void OBJ_task_init(OBJ_MODEL_PRIORITY *task_priority,int tick_update_rate);
+/*object memory binding*/
+void obj_snap(obj_init_struct* _model_init_,int _model_size_);
 /*create object*/
 OBJ_STRUCT* Obj_Create(int obj_id, int obj_type);
 /*create hardware object, return pointer to obj */
 OBJ_STRUCT* HWObj_Create(int obj_id, int obj_type,int hwobj);
 /*object event*/
-extern void OBJ_Event(int obj_id);
+void OBJ_Event(int obj_id);
 /*set obj state*/
-extern void OBJ_SetState(int obj_id,int state);
-/*hardware event handler, board special*/
-extern void HWOBJ_Event(int obj_id);
+void OBJ_SetState(int obj_id,int state);
 /*update this obj */
-extern void OBJ_Upd_USART(OBJ_STRUCT *obj);
+void OBJ_Upd_USART(OBJ_STRUCT *obj);
 /*update all obj */
-extern void Upd_All_OBJ_USART(void);
+void Upd_All_OBJ_USART(void);
 /* FAST!!! update all obj */
-extern void FAST_Upd_All_OBJ_USART(void);
+void FAST_Upd_All_OBJ_USART(void);
 /*receive object data from message*/
-extern void Rx_OBJ_Data(USART_FRAME *mes);
+void Rx_OBJ_Data(USART_FRAME *mes);
 /*check control sum of receive data*/
-extern uint8_t Check_CRC(USART_FRAME *Rx_obj_c);
+uint8_t Check_CRC(USART_FRAME *Rx_obj_c);
 
-/*-----------------------------------------------*/
-extern void obj_snap(obj_init_struct* _model_init_,int _model_size_);
-
-/*weak functions prototypes*/
+/*RTOS tasks*/
+void _task__OBJ_model_thread (void *pvParameters);
+void _task__OBJ_data_rx (void *pvParameters);
+void _task__OBJ_data_tx(void *pvParameters);
+/*-----------------------------------------------
+****DEVICE SPECIFIC COMMUNICATION FUNCTIONS*****
+-----------------------------------------------*/
 /*usart transfer , board specific */
 __weak void send_usart_message(uint8_t *message,uint32_t buf_size);
 /*CAN transfer, board specific*/
 __weak void send_can_message(CAN_OBJ_FRAME message);
+/*-----------------------------------------------
+***********REDEFINABLE FUNCTIONS*****************
+-----------------------------------------------*/
+/*hardware event handler, board special*/
+__weak void HWOBJ_Event(int obj_id);
 /*empty handler (can be changed)*/
 __weak void Dummy_Handler(OBJ_STRUCT *obj);
+/*obj model setup, config usart update rate, config object initial state */
+__weak void obj_model_setup(void);
 /*-----------------------------------------------*/
 #endif

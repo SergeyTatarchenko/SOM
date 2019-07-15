@@ -1,8 +1,8 @@
 /*************************************************
 * File Name          : OBJ_MODEL.c
 * Author             : Tatarchenko S.
-* Version            : v 1.2
-* Description        : simple obj model BKM
+* Version            : v 1.3
+* Description        : simple obj model 
 *************************************************/
 #include "OBJ_MODEL.h"
 /*----------- global variables-------------------*/
@@ -19,6 +19,9 @@ void ((*obj_handlers[num_of_all_obj+1]))(OBJ_STRUCT*);
 uint32_t num_of_obj;
 /*array of pointers to hardware objects*/
 OBJ_STRUCT *HW_OBJ[NUM_OF_HWOBJ];
+/*tasks init struct*/
+OBJ_MODEL_PRIORITY task_priority;
+
 
 #ifdef USART_MODE
 	/*pointer to an array of frames in the message for USART*/
@@ -42,7 +45,6 @@ void OBJ_Init(){
 	
 	OBJ_STRUCT *obj;
     obj_init_struct _model_init_[] ={_obj_cofig_};
-	
 	/* object memory allocation*/
 	memset(obj_mem_area,0,sizeof(OBJ_STRUCT)*num_of_all_obj);
 	objDefault =(OBJ_STRUCT*)obj_mem_area;
@@ -68,7 +70,7 @@ void OBJ_Init(){
 	/*get current number of objects in memory area */
 	num_of_obj = 0;
 	for(int i = 0;i<=num_of_all_obj;i++){
-		if(this_obj(i)->id[1]!=0){
+		if(this_obj(i)->typeof_obj != 0){
 			num_of_obj++;
 		}
 	}
@@ -76,7 +78,6 @@ void OBJ_Init(){
 
 /*object creating and snap*/
 void obj_snap(obj_init_struct* _model_init_,int _model_size_){
-	
 	for(int i = 0;i<(_model_size_/sizeof(obj_init_struct));i++){
 		if(_model_init_[i].obj_type == obj_hard){
 			HWObj_Create(_model_init_[i].id,_model_init_->obj_class,_model_init_[i].HW_adress);
@@ -119,19 +120,6 @@ void OBJ_SetState(int obj_id,int state){
 		obj_handlers[obj_id](this_obj(obj_id));
 		OBJ_Upd_USART(this_obj(obj_id));
 	}
-}
-
-void HWOBJ_Event(int obj_id){
-
-#if TARGET != 0	
-	OBJ_STRUCT* obj;
-	obj = objDefault + obj_id;
-
-	/*output event*/
-	if((obj->hardware_adress >= out_0)&&((obj->hardware_adress <= out_7))){
-			Set_IO_State((int)(obj->hardware_adress - out_offset),(int)obj->obj_state);
-	}
-#endif	   
 }
 
 /* object event, call object handler and call update function, if event = 1 */
@@ -188,7 +176,7 @@ void	OBJ_Upd_USART(OBJ_STRUCT *obj){
 void Upd_All_OBJ_USART(){
 	
 	for(int counter = 0; counter < num_of_all_obj; counter ++){
-		if(this_obj(counter)->id[1]!=0){
+		if(this_obj(counter)->typeof_obj != 0){
 			OBJ_Upd_USART(this_obj(counter));
 		}
 	}
@@ -216,7 +204,7 @@ void FAST_Upd_All_OBJ_USART(void){
 	for(int counter = 1; counter < num_of_all_obj; counter ++ ){
 		_CRC_ = 0;
 		
-		if((this_obj(counter)->id[1]==0)/*||(this_obj(counter)->obj_visible == FALSE)*/){
+		if(this_obj(counter)->typeof_obj == 0){
 			if(obj_counter > num_of_obj){
 				break;
 			}else{
@@ -254,24 +242,12 @@ CAN_OBJ_FRAME can_obj_create_message (int obj_id){
 	return message;
 }
 
-/**/
-/* Receive Data Obj */
+/* Receive Data Obj with USART */
 void Rx_OBJ_Data(USART_FRAME *mes){
-	
-	int id;
-	int i;
-	uint8_t type;
-	uint16_t _CRC = 0;
-	OBJ_STRUCT *obj;
-	uint8_t *pointer;
-	
-	/*id of rec object*/
-	id = mes->d_struct.object.id[0];
-	/*type of rec object*/
-	type = mes->d_struct.object.id[1];
-	
-	obj = objDefault + id;
-	
+	int i = 0;
+	uint16_t _CRC = 0;	
+	OBJ_STRUCT *obj = objDefault + mes->d_struct.object.idof_obj;
+
 	for(i = 0; i < (LEN_USART_MSG_OBJ - LEN_CRC); i++)
 	{
 		_CRC += mes->byte[i];
@@ -281,39 +257,86 @@ void Rx_OBJ_Data(USART_FRAME *mes){
 		/*error crc do not match*/
 		return;
 	}
-	/*board control object*/
-	if(id ==  (IND_obj_NULL + 1)){
+	/*------board control object, software special----------*/
+	if(mes->d_struct.object.idof_obj == obj_STATUS){
 		this_obj(obj_STATUS)->status_field = mes->d_struct.object.status_field;
 		OBJ_Event(obj_STATUS);
 		return;
 	}
+	/*-----------------------------------------------------*/
 	if(board_state.bit.power == 1){
-		/*receive data (obj type 4) */
-		if(type == IND_obj_COM){
-			/*take new object image*/
-			pointer = (uint8_t*)mes;
-			pointer += (sizeof(mes->d_struct.id_netw)+sizeof(mes->d_struct.id_modul));
-			memcpy(obj,pointer,sizeof(OBJ_STRUCT));
-			OBJ_Event(id);
+		/*extended data field*/
+		if(mes->d_struct.object.typeof_obj == IND_obj_COM){
+			memcpy(obj,((uint8_t*)mes + LEN_NETW + LEN_ID),sizeof(OBJ_STRUCT));
+			OBJ_Event(mes->d_struct.object.idof_obj);
 			return;		
 		}
-			/*object event*/
-		if(mes->d_struct.object.obj_field.default_field.control_byte.byte & event_mask){
-			/*if it is a control object*/	
-			if((type == obj->id[1])&&(type&IND_obj_CAS)){
-			/*take new object image*/
-			pointer = (uint8_t*)mes;
+		/*object event*/
+		if(mes->d_struct.object.obj_event == 1){
+			if( (mes->d_struct.object.typeof_obj == obj->typeof_obj) && 
+				((obj->typeof_obj == IND_obj_CAS)||(obj->typeof_obj == IND_obj_CWS)) )
+			{
 			obj->status_field = mes->d_struct.object.status_field;	
 			obj->obj_value = mes->d_struct.object.obj_value;
 			/*event bit call object handler*/
-			OBJ_Event(id);
-			/*call obj handler,change event bit on feedback*/	
+			OBJ_Event(mes->d_struct.object.idof_obj);	
 			}	
 		}
 	}
 }
 
-/*weak functions, board specific*/
+/*task creation function for object model*/
+void OBJ_task_init(OBJ_MODEL_PRIORITY *task_priority,int tick_update_rate){
+
+	xMutex_BUS_BUSY = xSemaphoreCreateMutex();
+	xMutex_USART_BUSY = xSemaphoreCreateMutex();
+	usart_receive_buffer = xQueueCreate(MES_BUF_SIZE,sizeof(USART_FRAME));
+	
+	xTaskCreate(_task__OBJ_data_rx,"rx handler",task_priority->stack_tx_rx, NULL,task_priority->rx_priority, NULL );
+	xTaskCreate(_task__OBJ_data_tx,"tx handler",task_priority->stack_tx_rx,(void*)&tick_update_rate,task_priority->tx_priority, NULL );	
+}
+
+
+/*software core of object model*/
+void _task__OBJ_model_thread (void *pvParameters){
+	
+	for(;;){
+		
+	}
+}
+
+/*receive thread of the object model*/
+void _task__OBJ_data_rx (void *pvParameters){
+
+#if USART_MODE == TRUE
+	USART_FRAME buf_usart;
+#endif
+	
+	for(;;){
+
+#if USART_MODE == TRUE
+		xQueueReceive(usart_receive_buffer,&buf_usart,portMAX_DELAY);
+		Rx_OBJ_Data(&buf_usart);
+#endif
+	}	
+}
+
+/*transfer thread of the object model*/
+void _task__OBJ_data_tx(void *pvParameters){
+	
+	static volatile TickType_t *UpdateRate;
+	UpdateRate =(TickType_t*)pvParameters;
+	
+	for(;;){
+		
+#if USART_DATA_FAST == TRUE
+		FAST_Upd_All_OBJ_USART();
+#endif			
+		vTaskDelay(*UpdateRate);	
+	}
+}
+
+
 
 /*usart message*/
 __weak void send_usart_message(uint8_t *message,uint32_t buf_size){
@@ -323,8 +346,29 @@ __weak void send_usart_message(uint8_t *message,uint32_t buf_size){
 __weak void send_can_message(CAN_OBJ_FRAME message){
 
 }
+
+/*obj model setup, config usart update rate, config object initial state */
+__weak void obj_model_setup(void){
+
+
+}
+
 /*empty handler*/
 __weak void Dummy_Handler(OBJ_STRUCT *obj){
 	
 }
+
+__weak void HWOBJ_Event(int obj_id){
+
+#if TARGET == 72	
+	OBJ_STRUCT* obj;
+	obj = objDefault + obj_id;
+
+	/*output event*/
+	if((obj->hardware_adress >= out_0)&&((obj->hardware_adress <= out_7))){
+			Set_IO_State((int)(obj->hardware_adress - out_offset),(int)obj->obj_state);
+	}
+#endif	   
+}
+
 
