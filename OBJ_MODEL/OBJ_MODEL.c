@@ -284,24 +284,38 @@ void Rx_OBJ_Data(USART_FRAME *mes){
 		}
 	}
 }
+/************************task creation functions*************************/
 
 /*task creation function for object model*/
-void OBJ_task_init(OBJ_MODEL_PRIORITY *task_priority,int tick_update_rate){
-
-	xMutex_BUS_BUSY = xSemaphoreCreateMutex();
+void OBJ_task_init(OBJ_MODEL_PRIORITY *task_priority,int tick_update_rate)
+{
+	int tick = tick_update_rate;
+	OBJ_Init();
+	obj_model_setup();
+#if USART_MODE == TRUE
 	xMutex_USART_BUSY = xSemaphoreCreateMutex();
 	usart_receive_buffer = xQueueCreate(MES_BUF_SIZE,sizeof(USART_FRAME));
-	
+#endif
+	xTaskCreate(_task__OBJ_model_thread,"main loop",task_priority->stack_user, NULL,task_priority->user_priority, NULL );
 	xTaskCreate(_task__OBJ_data_rx,"rx handler",task_priority->stack_tx_rx, NULL,task_priority->rx_priority, NULL );
-	xTaskCreate(_task__OBJ_data_tx,"tx handler",task_priority->stack_tx_rx,(void*)&tick_update_rate,task_priority->tx_priority, NULL );	
+	xTaskCreate(_task__OBJ_data_tx,"tx handler",task_priority->stack_tx_rx,&tick,task_priority->tx_priority, NULL );
 }
 
-
-/*software core of object model*/
+/*software core of object model (1 ms tick)*/
 void _task__OBJ_model_thread (void *pvParameters){
+	static volatile int tick = 0;
+	static const int overload = 3600000UL;
 	
 	for(;;){
 		
+		obj_model_task(tick);
+		if(tick <= overload ){
+			tick++;
+		}
+		else{
+			tick = 0;
+		}
+		vTaskDelay(1);		
 	}
 }
 
@@ -324,20 +338,22 @@ void _task__OBJ_data_rx (void *pvParameters){
 /*transfer thread of the object model*/
 void _task__OBJ_data_tx(void *pvParameters){
 	
-	static volatile TickType_t *UpdateRate;
-	UpdateRate =(TickType_t*)pvParameters;
+	/*не работает !!!*/
+	//TickType_t UpdateRate = *(TickType_t*)pvParameters;
+	TickType_t UpdateRate = task_priority.tick_update_rate; 
 	
 	for(;;){
-		
+		if(board_power){
 #if USART_DATA_FAST == TRUE
-		FAST_Upd_All_OBJ_USART();
-#endif			
-		vTaskDelay(*UpdateRate);	
+		FAST_Upd_All_OBJ_USART();	
+#endif
+		}
+		vTaskDelay(UpdateRate);
 	}
 }
 
 
-
+/************************weak function*************************/
 /*usart message*/
 __weak void send_usart_message(uint8_t *message,uint32_t buf_size){
 	
@@ -352,7 +368,11 @@ __weak void obj_model_setup(void){
 
 
 }
+/*obj model loop*/
+__weak void obj_model_task(int tick){
 
+
+}
 /*empty handler*/
 __weak void Dummy_Handler(OBJ_STRUCT *obj){
 	

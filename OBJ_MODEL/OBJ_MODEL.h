@@ -55,6 +55,7 @@ typedef struct{
 	
 	unsigned short stack_tx_rx;
 	unsigned short stack_user;
+	int tick_update_rate;
 
 }OBJ_MODEL_PRIORITY;
 /*-----------------------------------------------
@@ -184,7 +185,9 @@ typedef union{
 #define can_obj_mask	0x000000FF
 #define can_id_mask		0x00003F00
 #define can_net_mask	0x0000C000
-
+/*-----------------------------------------------*/
+#define board_power	board_state.bit.power
+/*-----------------------------------------------*/
 
 #ifndef USART_DATA_FAST
 	#error "USART_DATA_FAST is undefined"
@@ -280,5 +283,7 @@ __weak void HWOBJ_Event(int obj_id);
 __weak void Dummy_Handler(OBJ_STRUCT *obj);
 /*obj model setup, config usart update rate, config object initial state */
 __weak void obj_model_setup(void);
+/*obj model loop */
+__weak void obj_model_task(int tick);
 /*-----------------------------------------------*/
 #endif
