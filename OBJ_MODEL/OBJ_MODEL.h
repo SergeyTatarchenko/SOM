@@ -161,9 +161,10 @@ typedef union{
 
 /*---------------------------------------------*/
 #define this_obj(obj_id)				(objDefault + obj_id)
+#define this_obj_state(obj_id)			this_obj(obj_id)->obj_state
 #define obj_set_visible(obj_id)			this_obj(obj_id)->obj_visible = TRUE
 #define obj_set_unvisible(obj_id)		this_obj(obj_id)->obj_visible = FALSE
-#define obj_update(obj_id)				obj_handlers[obj_id](this_obj(obj_id))												
+#define obj_update(obj_id)				obj_handlers[obj_id](this_obj(obj_id))
 #define obj_state_on(obj_id)			this_obj(obj_id)->obj_state = TRUE;	\
 										OBJ_Event(obj_id)
 #define obj_state_off(obj_id)			this_obj(obj_id)->obj_state = FALSE; \
@@ -174,13 +175,13 @@ typedef union{
 #define USART_DATA_TYPE1				1
 #define USART_DATA_TYPE2				2
 /*---------------------------------------------*/
-#define can_tick_5ms	5
-#define can_tick_10ms	10
-#define can_tick_25ms	25
-#define can_tick_50ms	50
-#define can_tick_100ms	100
-#define can_tick_500ms	500
-#define can_tick_1s		1000
+#define tick_5ms	5
+#define tick_10ms	10
+#define tick_25ms	25
+#define tick_50ms	50
+#define tick_100ms	100
+#define tick_500ms	500
+#define tick_1s		1000
 /*-----------------------------------------------*/
 #define can_obj_mask	0x000000FF
 #define can_id_mask		0x00003F00
