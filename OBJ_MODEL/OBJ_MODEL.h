@@ -1,7 +1,7 @@
 /*************************************************
 * File Name          : OBJ_MODEL.h
 * Author             : Tatarchenko S.
-* Version            : v 1.3
+* Version            : v 1.4
 * Description        : header for OBJ_MODEL.c 
 *************************************************/
 #ifndef OBJ_DATA_H_
@@ -14,14 +14,16 @@
 /*-----------------------------------------------*/
 /*------------object description-----------------*/
 /*-----------------------------------------------*/
+#define LEN_START	2
 #define LEN_NETW	1
 #define LEN_ID		1
 #define	LEN_INDEX	2
 #define LEN_DATA	8
 #define	LEN_CRC		2
-#define LEN_HEAD_SIZE			(LEN_NETW + LEN_ID)
+#define	LEN_STOP	1
+#define LEN_HEAD_SIZE			(LEN_START + LEN_NETW + LEN_ID )
 #define LEN_OBJ					(LEN_INDEX + LEN_DATA + LEN_CRC)
-#define	LEN_USART_MSG_OBJ		(LEN_NETW + LEN_ID + LEN_INDEX + LEN_DATA + LEN_CRC)
+#define	LEN_USART_MSG_OBJ		(LEN_START + LEN_NETW + LEN_ID + LEN_INDEX + LEN_DATA + LEN_CRC + LEN_STOP)
 /*-----------------------------------------------*/
 
 /* enums to describe types and priorities of objects*/
@@ -88,7 +90,13 @@ typedef	struct{
 		}default_field;
 		/* extended data field for data transmit*/
 		struct{
-			uint8_t data[8];
+			union{
+				uint8_t data[8];
+				struct{
+					uint32_t dL;
+					uint32_t dH;
+				}dWord;
+			}extended_field;
 		}data_field;
 	}obj_field;	
 }OBJ_STRUCT;
@@ -112,10 +120,12 @@ typedef struct {
 #pragma pack(push,1)
 typedef union{
 	struct{
+		uint8_t start_seq[2] ;  
         uint8_t id_netw;
         uint8_t id_modul;
         OBJ_STRUCT object;
         uint16_t crc;
+		uint8_t stop_seq;
     }d_struct;
     uint8_t byte[LEN_USART_MSG_OBJ];
 }USART_FRAME;
@@ -159,6 +169,8 @@ typedef union{
 #define obj_hardware					obj_field.default_field.control_byte.bit.hardware
 #define obj_data						obj_field.data_field.data
 
+#define dWordL						obj_field.data_field.extended_field.dWord.dL
+#define dWordH						obj_field.data_field.extended_field.dWord.dH
 /*---------------------------------------------*/
 #define this_obj(obj_id)				(objDefault + obj_id)
 #define this_obj_state(obj_id)			this_obj(obj_id)->obj_state
@@ -174,12 +186,18 @@ typedef union{
 #define USART_STREAM_SIZE				(USART1_DEFAULT_BUF_SIZE*num_of_all_obj)
 #define USART_DATA_TYPE1				1
 #define USART_DATA_TYPE2				2
+
+#define START_BYTE_0	0xAA
+#define START_BYTE_1	0x55
+#define STOP_BYTE		0xFF
 /*---------------------------------------------*/
+#define tick_1ms	1
 #define tick_5ms	5
 #define tick_10ms	10
 #define tick_25ms	25
 #define tick_50ms	50
 #define tick_100ms	100
+#define tick_250ms	250
 #define tick_500ms	500
 #define tick_1s		1000
 /*-----------------------------------------------*/

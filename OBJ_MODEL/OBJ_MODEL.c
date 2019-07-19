@@ -1,7 +1,7 @@
 /*************************************************
 * File Name          : OBJ_MODEL.c
 * Author             : Tatarchenko S.
-* Version            : v 1.3
+* Version            : v 1.4
 * Description        : simple obj model 
 *************************************************/
 #include "OBJ_MODEL.h"
@@ -36,7 +36,7 @@ OBJ_MODEL_PRIORITY task_priority;
 	/*queue of messages from usart module*/
 	xQueueHandle usart_receive_buffer;
 	/*usart data byte counter */
-	uint8_t usart_irq_counter;
+	uint8_t usart_irq_counter = 0;
 #endif
 /*-----------------------------------------------*/
 
@@ -197,9 +197,15 @@ void FAST_Upd_All_OBJ_USART(void){
 		/*fill ID and NETWORK*/
 		object_frame.d_struct.id_netw = ID_NETWORK;
 		object_frame.d_struct.id_modul = ID_DEVICE;
+		//
+		object_frame.d_struct.start_seq[0] = (uint8_t)START_BYTE_0;
+		object_frame.d_struct.start_seq[1] = (uint8_t)START_BYTE_1;
+		object_frame.d_struct.stop_seq = (uint8_t)STOP_BYTE;
+		//
 		/*fill object field*/
 		pointer = (uint8_t*)&object_frame;
-		pointer += (sizeof(object_frame.d_struct.id_netw)+sizeof(object_frame.d_struct.id_modul));
+		pointer += (sizeof(object_frame.d_struct.id_netw)+sizeof(object_frame.d_struct.id_modul)+
+					sizeof(object_frame.d_struct.start_seq));
 	/*fill array of USART obj*/
 	for(int counter = 1; counter < num_of_all_obj; counter ++ ){
 		_CRC_ = 0;
@@ -213,7 +219,7 @@ void FAST_Upd_All_OBJ_USART(void){
 		}
 		memcpy(pointer,this_obj(counter),sizeof(OBJ_STRUCT));
 		/*fill CRC field*/
-		for(int i = 0; i < LEN_USART_MSG_OBJ - LEN_CRC; i++){
+		for(int i = 0 + LEN_START; i < LEN_USART_MSG_OBJ - (LEN_CRC + LEN_STOP); i++){
 			_CRC_ += object_frame.byte[i];
 		}
 		object_frame.d_struct.crc = _CRC_;
@@ -248,7 +254,7 @@ void Rx_OBJ_Data(USART_FRAME *mes){
 	uint16_t _CRC = 0;	
 	OBJ_STRUCT *obj = objDefault + mes->d_struct.object.idof_obj;
 
-	for(i = 0; i < (LEN_USART_MSG_OBJ - LEN_CRC); i++)
+	for(i = 0 + LEN_START; i < LEN_USART_MSG_OBJ - (LEN_CRC + LEN_STOP); i++)
 	{
 		_CRC += mes->byte[i];
 	}
@@ -264,7 +270,7 @@ void Rx_OBJ_Data(USART_FRAME *mes){
 		return;
 	}
 	/*-----------------------------------------------------*/
-	if(board_state.bit.power == 1){
+	if(board_power == 1){
 		/*extended data field*/
 		if(mes->d_struct.object.typeof_obj == IND_obj_COM){
 			memcpy(obj,((uint8_t*)mes + LEN_NETW + LEN_ID),sizeof(OBJ_STRUCT));
@@ -315,7 +321,7 @@ void _task__OBJ_model_thread (void *pvParameters){
 		else{
 			tick = 0;
 		}
-		vTaskDelay(1);		
+		vTaskDelay(tick_1ms);		
 	}
 }
 
