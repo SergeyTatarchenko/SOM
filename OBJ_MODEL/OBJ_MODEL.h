@@ -1,7 +1,7 @@
 /*************************************************
 * File Name          : OBJ_MODEL.h
 * Author             : Tatarchenko S.
-* Version            : v 1.4
+* Version            : v 1.5
 * Description        : header for OBJ_MODEL.c 
 *************************************************/
 #ifndef OBJ_DATA_H_
@@ -42,10 +42,11 @@ typedef enum{
 
 typedef enum{
 	/*software object, default object*/	
-	obj_soft = 0,
+	obj_soft =  0,
 	/*hardware object, use special hanlder*/
-	obj_hard  = 1
-	
+	obj_hard  = 1,
+	/*software timer (test)*/
+	obj_timer = 2
 }OBJECT_TYPE;
 
 typedef struct{
@@ -84,8 +85,13 @@ typedef	struct{
 					unsigned hardware  : 1;
 				}bit;
 			}control_byte;
-			uint16_t HW_adress;
+			/* max 255 hwobj */
+			uint8_t HW_adress;
+			/*max 255 soft timers */
+			uint8_t TimerID;
+			/*rezerv*/
 			uint8_t rezerv[3];
+			/*value field*/
 			uint16_t value;
 		}default_field;
 		/* extended data field for data transmit*/
@@ -109,7 +115,8 @@ typedef struct {
 	uint8_t id;
 	OBJECT_CLASS obj_class;
 	OBJECT_TYPE obj_type;
-	uint16_t HW_adress;
+	uint8_t HW_adress;
+	uint16_t delay;
 	void (*handler_pointer)(OBJ_STRUCT*);
 }obj_init_struct;
 #pragma pack(pop)
@@ -165,6 +172,7 @@ typedef union{
 #define obj_state						obj_field.default_field.control_byte.bit.state
 #define obj_value						obj_field.default_field.value
 #define hardware_adress					obj_field.default_field.HW_adress
+#define timer_adress					obj_field.default_field.TimerID
 #define obj_visible						obj_field.default_field.control_byte.bit.visible
 #define obj_hardware					obj_field.default_field.control_byte.bit.hardware
 #define obj_data						obj_field.data_field.data
@@ -241,10 +249,10 @@ typedef union{
 -----------------------------------------------*/
 
 extern OBJ_STRUCT *objDefault;
-extern void ((*obj_handlers[num_of_all_obj +1]))(OBJ_STRUCT*);
 extern BOARD_STATE	board_state;
 extern uint32_t num_of_obj;
 extern OBJ_MODEL_PRIORITY task_priority;
+extern void ((*obj_handlers[num_of_all_obj+1]))(void*);
 
 #if	HARDWARE_OBJECT == TRUE
 	extern OBJ_STRUCT *HW_OBJ[NUM_OF_HWOBJ];
@@ -267,6 +275,8 @@ void obj_snap(obj_init_struct* _model_init_,int _model_size_);
 OBJ_STRUCT* Obj_Create(int obj_id, int obj_type);
 /*create hardware object, return pointer to obj */
 OBJ_STRUCT* HWObj_Create(int obj_id, int obj_type,int hwobj);
+/* create timer */
+OBJ_STRUCT* Timer_Create(int obj_id, int obj_type,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*));
 /*object event*/
 void OBJ_Event(int obj_id);
 /*set obj state*/

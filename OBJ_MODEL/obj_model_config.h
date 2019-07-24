@@ -12,12 +12,18 @@
 
 #define HARDWARE_OBJECT TRUE
 #define USART_DATA_FAST	TRUE
+#define OBJECT_TIMER	TRUE
 
 #define	num_of_all_obj		30
 #define MES_BUF_SIZE		20
 
+
 #if HARDWARE_OBJECT == TRUE
 	#define NUM_OF_HWOBJ    20
+#endif
+
+#if OBJECT_TIMER == TRUE
+	#define NUM_OF_TIMER    20
 #endif
 
 #ifndef TARGET

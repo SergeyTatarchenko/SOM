@@ -1,8 +1,8 @@
 /*************************************************
 * File Name          : OBJ_MODEL.c
 * Author             : Tatarchenko S.
-* Version            : v 1.4
-* Description        : simple obj model 
+* Version            : v 1.5
+* Description        : Simple Obj Model 
 *************************************************/
 #include "OBJ_MODEL.h"
 /*----------- global variables-------------------*/
@@ -14,7 +14,7 @@ OBJ_STRUCT *objDefault;
 /*structure with current board mode*/
 BOARD_STATE	board_state;
 /*array of pointers to object handler functions*/
-void ((*obj_handlers[num_of_all_obj+1]))(OBJ_STRUCT*);
+void ((*obj_handlers[num_of_all_obj+1]))(void*);
 /*number of objects created*/
 uint32_t num_of_obj;
 /*array of pointers to hardware objects*/
@@ -22,6 +22,9 @@ OBJ_STRUCT *HW_OBJ[NUM_OF_HWOBJ];
 /*tasks init struct*/
 OBJ_MODEL_PRIORITY task_priority;
 
+#if OBJECT_TIMER == TRUE
+	TimerHandle_t obj_timers[NUM_OF_TIMER];
+#endif
 
 #ifdef USART_MODE
 	/*pointer to an array of frames in the message for USART*/
@@ -38,6 +41,7 @@ OBJ_MODEL_PRIORITY task_priority;
 	/*usart data byte counter */
 	uint8_t usart_irq_counter = 0;
 #endif
+
 /*-----------------------------------------------*/
 
 /*init obj model*/
@@ -55,7 +59,7 @@ void OBJ_Init(){
 	}
 	
 	for(int counter = 0;counter <= num_of_all_obj;counter++){
-		obj_handlers[counter]= Dummy_Handler;
+		obj_handlers[counter]= (void(*)(void*))Dummy_Handler;
 	}
 #if HARDWARE_OBJECT == TRUE
 		for(int counter = 0;counter <= NUM_OF_HWOBJ;counter++){
@@ -79,13 +83,21 @@ void OBJ_Init(){
 /*object creating and snap*/
 void obj_snap(obj_init_struct* _model_init_,int _model_size_){
 	for(int i = 0;i<(_model_size_/sizeof(obj_init_struct));i++){
+		/*hardware obj create*/
 		if(_model_init_[i].obj_type == obj_hard){
 			HWObj_Create(_model_init_[i].id,_model_init_->obj_class,_model_init_[i].HW_adress);
-		}else if(_model_init_[i].obj_type == obj_soft){
+		}
+		/*soft obj create*/
+		else if(_model_init_[i].obj_type == obj_soft){
 			Obj_Create(_model_init_[i].id,_model_init_[i].obj_class);
 		}
+		/*timers creation*/
+		else if(_model_init_[i].obj_type == obj_timer){
+			Timer_Create(_model_init_[i].id,_model_init_[i].obj_type,_model_init_[i].delay,_model_init_[i].handler_pointer);
+		}
+		/*handlers swap*/
 		if(_model_init_[i].handler_pointer!= NULL){
-			obj_handlers[_model_init_[i].id] = _model_init_[i].handler_pointer;
+			obj_handlers[_model_init_[i].id] = (void(*)(void*))_model_init_[i].handler_pointer;
 		}
 	}
 }
@@ -110,6 +122,16 @@ OBJ_STRUCT* HWObj_Create(int obj_id, int obj_type,int hwobj ){
 	return obj; 
 }
 
+/*create hardware object, return pointer to obj */
+OBJ_STRUCT* Timer_Create(int obj_id, int obj_type,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*)){
+	static int num_of_timer = 1;
+	OBJ_STRUCT* obj = Obj_Create(obj_id,obj_type);
+	obj->timer_adress = num_of_timer;
+	obj_timers[num_of_timer] = xTimerCreate("",delay,FALSE,(void*)&obj->timer_adress,(void(*)(void*))handler_pointer);
+	num_of_timer++;	
+	return obj; 
+}
+
 /*set state with update*/
 void OBJ_SetState(int obj_id,int state){
 	if(state>1){
@@ -129,8 +151,16 @@ void OBJ_Event(int obj_id){
 		if(this_obj(obj_id)->obj_hardware == TRUE){
 			HWOBJ_Event(obj_id);		
 		}
-		obj_handlers[obj_id](this_obj(obj_id));
-		/*feedback*/
+		/*timer event*/
+		if(this_obj(obj_id)->timer_adress != 0){
+			xTimerStart(obj_timers[this_obj(obj_id)->timer_adress],0);
+		}
+		/* default soft object*/
+		else{
+			obj_handlers[obj_id](this_obj(obj_id));
+		}
+		
+				/*feedback*/
 		
 		if(this_obj(obj_id)->obj_event == 1){
 			this_obj(obj_id)->obj_event = 0;
@@ -298,6 +328,7 @@ void OBJ_task_init(OBJ_MODEL_PRIORITY *task_priority,int tick_update_rate)
 	int tick = tick_update_rate;
 	OBJ_Init();
 	obj_model_setup();
+	
 #if USART_MODE == TRUE
 	xMutex_USART_BUSY = xSemaphoreCreateMutex();
 	usart_receive_buffer = xQueueCreate(MES_BUF_SIZE,sizeof(USART_FRAME));
