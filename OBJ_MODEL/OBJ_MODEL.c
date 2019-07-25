@@ -303,7 +303,10 @@ void Rx_OBJ_Data(USART_FRAME *mes){
 	if(board_power == 1){
 		/*extended data field*/
 		if(mes->d_struct.object.typeof_obj == IND_obj_COM){
-			memcpy(obj,((uint8_t*)mes + LEN_NETW + LEN_ID),sizeof(OBJ_STRUCT));
+			
+			obj->dWordL = mes->d_struct.object.dWordL;
+			obj->dWordH = mes->d_struct.object.dWordH;
+			
 			OBJ_Event(mes->d_struct.object.idof_obj);
 			return;		
 		}
@@ -416,16 +419,7 @@ __weak void Dummy_Handler(OBJ_STRUCT *obj){
 }
 
 __weak void HWOBJ_Event(int obj_id){
-
-#if TARGET == 72	
-	OBJ_STRUCT* obj;
-	obj = objDefault + obj_id;
-
-	/*output event*/
-	if((obj->hardware_adress >= out_0)&&((obj->hardware_adress <= out_7))){
-			Set_IO_State((int)(obj->hardware_adress - out_offset),(int)obj->obj_state);
-	}
-#endif	   
+	   
 }
 
 
