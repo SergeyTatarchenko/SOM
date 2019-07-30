@@ -281,6 +281,8 @@ OBJ_STRUCT* Timer_Create(int obj_id, int obj_type,uint16_t delay,void (*handler_
 void OBJ_Event(int obj_id);
 /*set obj state*/
 void OBJ_SetState(int obj_id,int state);
+/*test*/
+void set_all_obj_off(void);
 /*update this obj */
 void OBJ_Upd_USART(OBJ_STRUCT *obj);
 /*update all obj */

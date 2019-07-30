@@ -143,7 +143,16 @@ void OBJ_SetState(int obj_id,int state){
 		OBJ_Upd_USART(this_obj(obj_id));
 	}
 }
-
+void set_all_obj_off(void)
+{
+	for(int i = 0; i < num_of_obj;i++)
+	{
+		if((objDefault+i)->typeof_obj != 0)
+		{
+			obj_state_off(i);
+		}
+	}
+}
 /* object event, call object handler and call update function, if event = 1 */
 void OBJ_Event(int obj_id){
 	
@@ -259,7 +268,7 @@ void FAST_Upd_All_OBJ_USART(void){
 		obj_counter++;
 	}
 	/*mutex return in dma transfer complete interrupt*/
-	xSemaphoreTake(xMutex_USART_BUSY,portMAX_DELAY);
+	xSemaphoreTake(xMutex_USART_BUSY,500);
 	send_usart_message(USART_DATA,sizeof(USART_FRAME)*obj_counter);	// transfer data to usart
 }
 #endif
@@ -328,7 +337,6 @@ void Rx_OBJ_Data(USART_FRAME *mes){
 /*task creation function for object model*/
 void OBJ_task_init(OBJ_MODEL_PRIORITY *task_priority,int tick_update_rate)
 {
-	int tick = tick_update_rate;
 	OBJ_Init();
 	obj_model_setup();
 	
@@ -338,7 +346,6 @@ void OBJ_task_init(OBJ_MODEL_PRIORITY *task_priority,int tick_update_rate)
 #endif
 	xTaskCreate(_task__OBJ_model_thread,"main loop",task_priority->stack_user, NULL,task_priority->user_priority, NULL );
 	xTaskCreate(_task__OBJ_data_rx,"rx handler",task_priority->stack_tx_rx, NULL,task_priority->rx_priority, NULL );
-	xTaskCreate(_task__OBJ_data_tx,"tx handler",task_priority->stack_tx_rx,&tick,task_priority->tx_priority, NULL );
 }
 
 /*software core of object model (1 ms tick)*/
@@ -374,25 +381,6 @@ void _task__OBJ_data_rx (void *pvParameters){
 #endif
 	}	
 }
-
-/*transfer thread of the object model*/
-void _task__OBJ_data_tx(void *pvParameters){
-	
-	/*не работает !!!*/
-	//TickType_t UpdateRate = *(TickType_t*)pvParameters;
-	TickType_t UpdateRate = task_priority.tick_update_rate; 
-	
-	for(;;){
-		if(board_power){
-#if USART_DATA_FAST == TRUE
-		FAST_Upd_All_OBJ_USART();	
-#endif
-		}
-		vTaskDelay(UpdateRate);
-	}
-}
-
-
 /************************weak function*************************/
 /*usart message*/
 __weak void send_usart_message(uint8_t *message,uint32_t buf_size){
