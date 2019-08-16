@@ -1,14 +1,12 @@
 /*************************************************
 * File Name          : OBJ_MODEL.h
 * Author             : Tatarchenko S.
-* Version            : v 1.5
+* Version            : v 1.5.1
 * Description        : header for OBJ_MODEL.c 
 *************************************************/
 #ifndef OBJ_DATA_H_
 #define	OBJ_DATA_H_
 /*-----------------------------------------------*/
-#include "RTOS.h"
-/*----------------------------------------------*/
 #include "string.h"
 #include "stdint.h"
 /*-----------------------------------------------*/
@@ -45,8 +43,10 @@ typedef enum{
 	obj_soft =  0,
 	/*hardware object, use special hanlder*/
 	obj_hard  = 1,
-	/*software timer (test)*/
-	obj_timer = 2
+	/*software timer (with RTOS_USAGE only)*/
+	obj_timer = 2,
+	/*info object,use extended data field, contains text*/
+	obj_text =  3
 }OBJECT_TYPE;
 
 typedef struct{
@@ -215,14 +215,25 @@ typedef union{
 /*-----------------------------------------------*/
 #define board_power	board_state.bit.power
 /*-----------------------------------------------*/
+#define TRUE    1
+#define FALSE   0
+/*-----------------------------------------------
+**************model operation mode**************
+-----------------------------------------------*/
+#define APP_MODE	1
+#define BOOT_MODE	2
 
 #ifndef USART_DATA_FAST
 	#error "USART_DATA_FAST is undefined"
 #endif
 
+#if RTOS_USAGE == TRUE
+	#include "RTOS.h"
+#endif
+
 /*-----------------------------------------------*/
 
-#if USART_MODE == TRUE
+#if USART_COM_ENABLE == TRUE
 	/* data array for usart obj transfer */
 	extern uint8_t	usart_data_transmit_array[USART1_DEFAULT_BUF_SIZE];
 	extern uint8_t	usart_data_stream[USART_STREAM_SIZE];
@@ -236,7 +247,7 @@ typedef union{
 	extern uint8_t usart_irq_counter;
 #endif
 
-#if CAN_MODE == TRUE
+#if CAN_COM_ENABLE == TRUE
 	extern xQueueHandle can_receive_buffer;
 	extern xQueueHandle can_transmit_buffer;
 	CAN_OBJ_FRAME can_obj_create_message (int obj_id);

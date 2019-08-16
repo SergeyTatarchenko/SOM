@@ -1,7 +1,7 @@
 /*************************************************
 * File Name          : OBJ_MODEL.c
 * Author             : Tatarchenko S.
-* Version            : v 1.5
+* Version            : v 1.5.1
 * Description        : Simple Obj Model 
 *************************************************/
 #include "OBJ_MODEL.h"
@@ -17,8 +17,10 @@ BOARD_STATE	board_state;
 void ((*obj_handlers[num_of_all_obj+1]))(void*);
 /*number of objects created*/
 uint32_t num_of_obj;
+#if HARDWARE_OBJECT == TRUE
 /*array of pointers to hardware objects*/
 OBJ_STRUCT *HW_OBJ[NUM_OF_HWOBJ];
+#endif
 /*tasks init struct*/
 OBJ_MODEL_PRIORITY task_priority;
 
@@ -26,7 +28,7 @@ OBJ_MODEL_PRIORITY task_priority;
 	TimerHandle_t obj_timers[NUM_OF_TIMER];
 #endif
 
-#ifdef USART_MODE
+#ifdef USART_COM_ENABLE
 	/*pointer to an array of frames in the message for USART*/
 	uint8_t USART_DATA[sizeof(USART_FRAME)*num_of_all_obj];
 	/* data array for usart obj transfer */
@@ -83,18 +85,22 @@ void OBJ_Init(){
 /*object creating and snap*/
 void obj_snap(obj_init_struct* _model_init_,int _model_size_){
 	for(int i = 0;i<(_model_size_/sizeof(obj_init_struct));i++){
+		#if HARDWARE_OBJECT == TRUE
 		/*hardware obj create*/
 		if(_model_init_[i].obj_type == obj_hard){
 			HWObj_Create(_model_init_[i].id,_model_init_->obj_class,_model_init_[i].HW_adress);
 		}
+		#endif
 		/*soft obj create*/
-		else if(_model_init_[i].obj_type == obj_soft){
+		if(_model_init_[i].obj_type == obj_soft){
 			Obj_Create(_model_init_[i].id,_model_init_[i].obj_class);
 		}
+		#if OBJECT_TIMER == TRUE 
 		/*timers creation*/
-		else if(_model_init_[i].obj_type == obj_timer){
+		if(_model_init_[i].obj_type == obj_timer){
 			Timer_Create(_model_init_[i].id,_model_init_[i].obj_type,_model_init_[i].delay,_model_init_[i].handler_pointer);
 		}
+		#endif
 		/*handlers swap*/
 		if(_model_init_[i].handler_pointer!= NULL){
 			obj_handlers[_model_init_[i].id] = (void(*)(void*))_model_init_[i].handler_pointer;
@@ -112,6 +118,7 @@ OBJ_STRUCT* Obj_Create(int obj_id, int obj_type ){
 	return obj;
 }
 
+#if HARDWARE_OBJECT == TRUE
 /*create hardware object, return pointer to obj */
 OBJ_STRUCT* HWObj_Create(int obj_id, int obj_type,int hwobj ){
 	
@@ -121,7 +128,9 @@ OBJ_STRUCT* HWObj_Create(int obj_id, int obj_type,int hwobj ){
 	obj->obj_hardware = TRUE;
 	return obj; 
 }
+#endif
 
+#if OBJECT_TIMER == TRUE
 /*create hardware object, return pointer to obj */
 OBJ_STRUCT* Timer_Create(int obj_id, int obj_type,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*)){
 	static int num_of_timer = 1;
@@ -131,6 +140,7 @@ OBJ_STRUCT* Timer_Create(int obj_id, int obj_type,uint16_t delay,void (*handler_
 	num_of_timer++;	
 	return obj; 
 }
+#endif
 
 /*set state with update*/
 void OBJ_SetState(int obj_id,int state){
@@ -160,10 +170,12 @@ void OBJ_Event(int obj_id){
 		if(this_obj(obj_id)->obj_hardware == TRUE){
 			HWOBJ_Event(obj_id);		
 		}
+		#if OBJECT_TIMER == TRUE
 		/*timer event*/
 		if(this_obj(obj_id)->timer_adress != 0){
 			xTimerStart(obj_timers[this_obj(obj_id)->timer_adress],0);
 		}
+		#endif
 		/* default soft object*/
 		else{
 			obj_handlers[obj_id](this_obj(obj_id));
@@ -173,7 +185,7 @@ void OBJ_Event(int obj_id){
 		
 		if(this_obj(obj_id)->obj_event == 1){
 			this_obj(obj_id)->obj_event = 0;
-			#if ((USART_DATA_FAST == FALSE)&&(MODE == USART_MODE))
+			#if ((USART_DATA_FAST == FALSE)&&(MODE == USART_COM_ENABLE))
 				OBJ_Upd_USART(this_obj(obj_id));
 			#endif
 		}
@@ -339,13 +351,14 @@ void OBJ_task_init(OBJ_MODEL_PRIORITY *task_priority,int tick_update_rate)
 {
 	OBJ_Init();
 	obj_model_setup();
-	
-#if USART_MODE == TRUE
-	xMutex_USART_BUSY = xSemaphoreCreateMutex();
-	usart_receive_buffer = xQueueCreate(MES_BUF_SIZE,sizeof(USART_FRAME));
-#endif
+#if RTOS_USAGE == TRUE	
+	#if USART_COM_ENABLE == TRUE
+		xMutex_USART_BUSY = xSemaphoreCreateMutex();
+		usart_receive_buffer = xQueueCreate(MES_BUF_SIZE,sizeof(USART_FRAME));	
+	#endif
 	xTaskCreate(_task__OBJ_model_thread,"main loop",task_priority->stack_user, NULL,task_priority->user_priority, NULL );
 	xTaskCreate(_task__OBJ_data_rx,"rx handler",task_priority->stack_tx_rx, NULL,task_priority->rx_priority, NULL );
+#endif	
 }
 
 /*software core of object model (1 ms tick)*/
@@ -369,13 +382,13 @@ void _task__OBJ_model_thread (void *pvParameters){
 /*receive thread of the object model*/
 void _task__OBJ_data_rx (void *pvParameters){
 
-#if USART_MODE == TRUE
+#if USART_COM_ENABLE == TRUE
 	USART_FRAME buf_usart;
 #endif
 	
 	for(;;){
 
-#if USART_MODE == TRUE
+#if USART_COM_ENABLE == TRUE
 		xQueueReceive(usart_receive_buffer,&buf_usart,portMAX_DELAY);
 		Rx_OBJ_Data(&buf_usart);
 #endif

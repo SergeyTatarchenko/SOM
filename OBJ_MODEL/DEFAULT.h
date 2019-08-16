@@ -20,11 +20,11 @@ v 0.3
 2) create object init like "obj_name_init  obj_index,class,snap,handler	
 3) add 	object init to 	_obj_cofig_	
 */
-/*----------------------------------------------------------------------------------------------------\
-           name           |      index          |   class     | type     | hw_snap  |   Handler       | 
-\----------------------------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------------------------------------------\
+           name               |      index          |   class     | type     | hw_snap   |    delay    |   Handler        | 
+\-----------------------------------------------------------------------------------------------------------------------*/ 
+#define _obj_STATUS_init       obj_STATUS           ,IND_obj_CAS  ,obj_soft  ,   NULL     ,NULL        ,
 
-#define _obj_STATUS_init       obj_STATUS           ,IND_obj_CAS  ,obj_soft  ,   NULL   ,NULL
 
 #define _obj_cofig_	{_obj_STATUS_init}
 					
