@@ -188,7 +188,11 @@ typedef union{
 #define obj_state_on(obj_id)			this_obj(obj_id)->obj_state = TRUE;	\
 										OBJ_Event(obj_id)
 #define obj_state_off(obj_id)			this_obj(obj_id)->obj_state = FALSE; \
-										OBJ_Event(obj_id)
+										OBJ_Event(obj_id)										
+#define state_of_obj(obj)				this_obj(obj)->obj_state
+#define value_of_obj(obj)				this_obj(obj)->obj_value
+#define obj_set_state(obj,state)		this_obj(obj)->obj_state = state
+#define obj_set_value(obj,state)		this_obj(obj)->obj_value = value
 /*---------------------------------------------*/
 #define USART1_DEFAULT_BUF_SIZE 		LEN_USART_MSG_OBJ
 #define USART_STREAM_SIZE				(USART1_DEFAULT_BUF_SIZE*num_of_all_obj)
