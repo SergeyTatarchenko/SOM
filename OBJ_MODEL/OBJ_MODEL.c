@@ -150,7 +150,6 @@ void OBJ_SetState(int obj_id,int state){
 	if(this_obj(obj_id)->obj_state != state){
 		this_obj(obj_id)->obj_state = state;
 		obj_handlers[obj_id](this_obj(obj_id));
-		OBJ_Upd_USART(this_obj(obj_id));
 	}
 }
 void set_all_obj_off(void)
@@ -163,6 +162,7 @@ void set_all_obj_off(void)
 		}
 	}
 }
+
 /* object event, call object handler and call update function, if event = 1 */
 void OBJ_Event(int obj_id){
 	
@@ -180,14 +180,9 @@ void OBJ_Event(int obj_id){
 		else{
 			obj_handlers[obj_id](this_obj(obj_id));
 		}
-		
-				/*feedback*/
-		
+				/*feedback*/		
 		if(this_obj(obj_id)->obj_event == 1){
 			this_obj(obj_id)->obj_event = 0;
-			#if ((USART_DATA_FAST == FALSE)&&(MODE == USART_COM_ENABLE))
-				OBJ_Upd_USART(this_obj(obj_id));
-			#endif
 		}
 	}	
 }
