@@ -33,11 +33,11 @@ typedef enum
 }obj_hw;
 
 /*-----------------------------------------------*/
-void obj_hw_input(OBJ_STRUCT *obj,uint8_t input);
-void obj_hw_adc(OBJ_STRUCT *obj,uint16_t value);
+void obj_hw_state(OBJ_STRUCT *obj,uint8_t input);
+void obj_hw_value(OBJ_STRUCT *obj,uint16_t value);
 
 void obj_adc_driver(uint16_t* data);
-void obj_input_driver(void);
+void obj_input_driver(uint8_t *registr,int num_of_inputs);
 /*-----------------------------------------------*/
 
 /*-----------------------------------------------*/
