@@ -88,7 +88,7 @@ void obj_snap(obj_init_struct* _model_init_,int _model_size_){
 		#if HARDWARE_OBJECT == TRUE
 		/*hardware obj create*/
 		if(_model_init_[i].obj_type == obj_hard){
-			HWObj_Create(_model_init_[i].id,_model_init_->obj_class,_model_init_[i].HW_adress);
+			HWObj_Create(_model_init_[i].id,_model_init_[i].obj_class,_model_init_[i].HW_adress);
 		}
 		#endif
 		/*soft obj create*/
@@ -98,7 +98,7 @@ void obj_snap(obj_init_struct* _model_init_,int _model_size_){
 		#if OBJECT_TIMER == TRUE 
 		/*timers creation*/
 		if(_model_init_[i].obj_type == obj_timer){
-			Timer_Create(_model_init_[i].id,_model_init_[i].obj_type,_model_init_[i].delay,_model_init_[i].handler_pointer);
+			Timer_Create(_model_init_[i].id,_model_init_[i].obj_class,_model_init_[i].delay,_model_init_[i].handler_pointer);
 		}
 		#endif
 		/*handlers swap*/
