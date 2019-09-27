@@ -25,9 +25,8 @@ void obj_input_driver(uint8_t *registr, int num_of_inputs)
 	
 	obj_hw input = in_0;
 	uint8_t *mem_pointer = registr;
-	uint8_t reg = *mem_pointer;
-	
-	for(int i = 0;i<num_of_inputs;i++)
+	uint8_t reg = *mem_pointer;	
+		for(int i = 0;i<num_of_inputs;i++)
 	{
 		for(int i = input;i<reg_size;i++)
 		{
