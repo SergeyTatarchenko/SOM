@@ -17,7 +17,7 @@
 /*
 v 0.3
 1) create object name  example   " #define obj_name	(IND_obj_NULL + x)"
-2) create object init like "obj_name_init  obj_index,class,snap,handler	
+2) create object init like "obj_name_init  obj_index,class,snap,delay,handler	
 3) add 	object init to 	_obj_cofig_	
 */
 /*-----------------------------------------------------------------------------------------------------------------------\
