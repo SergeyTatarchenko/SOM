@@ -1,7 +1,7 @@
 /*************************************************
 * File Name          : OBJ_MODEL.h
 * Author             : Tatarchenko S.
-* Version            : v 1.5.1
+* Version            : v 1.6.0
 * Description        : header for OBJ_MODEL.c 
 *************************************************/
 #ifndef OBJ_DATA_H_
@@ -45,7 +45,7 @@ typedef enum{
 	obj_hard  = 1,
 	/*software timer (with RTOS_USAGE only)*/
 	obj_timer = 2,
-	/*info object,use extended data field, contains text*/
+	/*info object,use standart data field, contains text, use special handler*/
 	obj_text =  3
 }OBJECT_TYPE;
 
@@ -61,6 +61,20 @@ typedef struct{
 	int tick_update_rate;
 
 }OBJ_MODEL_PRIORITY;
+
+typedef unsigned char OBJ_TEXT_typeDef;
+
+/*text block init struct, snap with object in Text_Obj_Create */
+typedef struct
+{
+	uint8_t obj_id;
+	/*obj_text arrays must be global!!!*/
+	OBJ_TEXT_typeDef *text_pointer;
+	uint16_t* obj_pointer;
+	uint8_t size;
+	uint8_t position;
+	
+}OBJ_TEXT_BLOCK;
 /*-----------------------------------------------
 *********OBJECT STRUCTURE DESCRIPTION***********
 -----------------------------------------------*/
@@ -80,17 +94,25 @@ typedef	struct{
 					unsigned rez2  : 1;
 					unsigned rez3  : 1;
 					unsigned rez4  : 1;
-					unsigned rez5  : 1;
+					unsigned extended_value : 1;
 					unsigned visible  : 1;
 					unsigned hardware  : 1;
 				}bit;
 			}control_byte;
-			/* max 255 hwobj */
-			uint8_t HW_adress;
-			/*max 255 soft timers */
-			uint8_t TimerID;
+			union{
+				/* max 255 hwobj */
+				uint8_t HW_adress;
+				/*max 255 soft timers */
+				uint8_t TimerID;
+				/*max 255 text block */
+				uint8_t TextBlockID;
+			}function;
 			/*rezerv*/
-			uint8_t rezerv[3];
+			uint8_t rezerv[2];
+			/*number of word in value*/
+			uint8_t value_info;
+			/*additional value*/
+			uint8_t number;
 			/*value field*/
 			uint16_t value;
 		}default_field;
@@ -171,14 +193,19 @@ typedef union{
 #define obj_event						obj_field.default_field.control_byte.bit.event
 #define obj_state						obj_field.default_field.control_byte.bit.state
 #define obj_value						obj_field.default_field.value
-#define hardware_adress					obj_field.default_field.HW_adress
-#define timer_adress					obj_field.default_field.TimerID
+#define hardware_adress					obj_field.default_field.function.HW_adress
+#define timer_adress					obj_field.default_field.function.TimerID
+#define value_adress					obj_field.default_field.function.TextBlockID
+#define obj_ext_value					obj_field.default_field.control_byte.bit.extended_value
 #define obj_visible						obj_field.default_field.control_byte.bit.visible
 #define obj_hardware					obj_field.default_field.control_byte.bit.hardware
 #define obj_data						obj_field.data_field.data
-
-#define dWordL						obj_field.data_field.extended_field.dWord.dL
-#define dWordH						obj_field.data_field.extended_field.dWord.dH
+/*---------------------------------------------*/
+#define obj_value_number				obj_field.default_field.number
+#define num_of_obj_value_words			obj_field.default_field.value_info
+/*---------------------------------------------*/
+#define dWordL							obj_field.data_field.extended_field.dWord.dL
+#define dWordH							obj_field.data_field.extended_field.dWord.dH
 /*---------------------------------------------*/
 #define this_obj(obj_id)				(objDefault + obj_id)
 #define this_obj_state(obj_id)			this_obj(obj_id)->obj_state
@@ -276,7 +303,7 @@ extern void ((*obj_handlers[num_of_all_obj+1]))(void*);
 #if USART_DATA_FAST == TRUE
 	extern uint8_t USART_DATA[sizeof(USART_FRAME)*num_of_all_obj];	
 #endif
-
+extern OBJ_TEXT_BLOCK TEXT_BLOCK_ARRAY[num_of_all_obj];
 /*-----------------------------------------------
 *********OBJ MODEL FUNCTION PROTOTYPES***********
 -----------------------------------------------*/
@@ -292,10 +319,14 @@ OBJ_STRUCT* Obj_Create(int obj_id, int obj_type);
 OBJ_STRUCT* HWObj_Create(int obj_id, int obj_type,int hwobj);
 /* create timer */
 OBJ_STRUCT* Timer_Create(int obj_id, int obj_type,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*));
+/*create text block*/
+OBJ_STRUCT* Text_Obj_Create(int obj_id, int obj_type);
 /*object event*/
 void OBJ_Event(int obj_id);
 /*set obj state*/
 void OBJ_SetState(int obj_id,int state);
+void obj_text_snap(uint8_t obj,OBJ_TEXT_typeDef *text_pointer,uint8_t size);
+void extended_value_update(void);
 /*test*/
 void set_all_obj_off(void);
 /*update this obj */
@@ -332,4 +363,29 @@ __weak void obj_model_setup(void);
 /*obj model loop */
 __weak void obj_model_task(int tick);
 /*-----------------------------------------------*/
+/*-----------------------------------------------
+********************FSM MODULE*******************
+-----------------------------------------------*/
+#define fsm_usart_size 4
+
+typedef enum {
+	state_0 = 0,
+	state_1 = 1,
+	state_2 = 2,
+	state_3 = 3,
+	state_final 
+}usart_states;
+ 
+typedef enum {
+	byte_0 ,
+	byte_1 ,
+	byte_2 ,
+	byte_3 ,
+}usart_bytes;
+
+extern usart_bytes get_usart_byte(unsigned char byte);
+extern const usart_states table_fsm_usart[fsm_usart_size][fsm_usart_size];
+
+
+
 #endif
