@@ -1,7 +1,7 @@
 /*************************************************
 * File Name          : OBJ_MODEL.c
 * Author             : Tatarchenko S.
-* Version            : v 1.6.0
+* Version            : v 1.5.1
 * Description        : Simple Obj Model 
 *************************************************/
 #include "OBJ_MODEL.h"
@@ -21,7 +21,6 @@ uint32_t num_of_obj;
 /*array of pointers to hardware objects*/
 OBJ_STRUCT *HW_OBJ[NUM_OF_HWOBJ];
 #endif
-OBJ_TEXT_BLOCK TEXT_BLOCK_ARRAY[num_of_all_obj];
 /*tasks init struct*/
 OBJ_MODEL_PRIORITY task_priority;
 
@@ -102,9 +101,6 @@ void obj_snap(obj_init_struct* _model_init_,int _model_size_){
 			Timer_Create(_model_init_[i].id,_model_init_[i].obj_class,_model_init_[i].delay,_model_init_[i].handler_pointer);
 		}
 		#endif
-		if(_model_init_[i].obj_type == obj_text){
-			Text_Obj_Create(_model_init_[i].id,_model_init_[i].obj_class);
-		}
 		/*handlers swap*/
 		if(_model_init_[i].handler_pointer!= NULL){
 			obj_handlers[_model_init_[i].id] = (void(*)(void*))_model_init_[i].handler_pointer;
@@ -115,7 +111,7 @@ void obj_snap(obj_init_struct* _model_init_,int _model_size_){
 /*create object, return pointer to obj */
 OBJ_STRUCT* Obj_Create(int obj_id, int obj_type ){
 	
-	OBJ_STRUCT* obj;	
+	OBJ_STRUCT* obj;
 	obj = objDefault + obj_id;
 	obj->id[1] = obj_type;
 	obj->obj_visible = TRUE;
@@ -146,17 +142,6 @@ OBJ_STRUCT* Timer_Create(int obj_id, int obj_type,uint16_t delay,void (*handler_
 }
 #endif
 
-OBJ_STRUCT* Text_Obj_Create(int obj_id, int obj_type)
-{
-	static int text_block_number = 1;
-	OBJ_STRUCT* obj = Obj_Create(obj_id,obj_type);
-	obj->value_adress = text_block_number;
-	obj->obj_ext_value = 1;
-	TEXT_BLOCK_ARRAY[text_block_number].obj_id = this_obj(obj_id)->idof_obj;
-	text_block_number++;
-	return obj; 
-}
-
 /*set state with update*/
 void OBJ_SetState(int obj_id,int state){
 	if(state>1){
@@ -178,34 +163,6 @@ void set_all_obj_off(void)
 	}
 }
 
-void obj_text_snap(uint8_t obj,OBJ_TEXT_typeDef *text_pointer,uint8_t size)
-{
-	uint8_t text_block = this_obj(obj)->value_adress;
-	TEXT_BLOCK_ARRAY[text_block].size = size;
-	TEXT_BLOCK_ARRAY[text_block].obj_pointer = &this_obj(obj)->obj_value;
-	TEXT_BLOCK_ARRAY[text_block].position = 0;
-	TEXT_BLOCK_ARRAY[text_block].text_pointer = text_pointer;
-	
-}
-
-void extended_value_update()
-{
-	int counter = 1;
-	while((TEXT_BLOCK_ARRAY[counter].obj_id != 0)||(counter < num_of_all_obj)){
-		/**/
-		*TEXT_BLOCK_ARRAY[counter].obj_pointer = *((uint16_t*)(TEXT_BLOCK_ARRAY[counter].text_pointer + TEXT_BLOCK_ARRAY[counter].position));
-		
-		if(TEXT_BLOCK_ARRAY[counter].position < TEXT_BLOCK_ARRAY[counter].size)
-		{
-			TEXT_BLOCK_ARRAY[counter].position+=2;
-		}
-		else
-		{
-			TEXT_BLOCK_ARRAY[counter].position = 0;
-		}
-		counter ++;
-	}
-}
 /* object event, call object handler and call update function, if event = 1 */
 void OBJ_Event(int obj_id){
 	
@@ -460,49 +417,5 @@ __weak void Dummy_Handler(OBJ_STRUCT *obj){
 __weak void HWOBJ_Event(int obj_id){
 	   
 }
-/*fsm module*/
-const usart_states table_fsm_usart[fsm_usart_size][fsm_usart_size] ={
-	/*step 0*/
-	[state_0][byte_0]=state_1,
-	[state_0][byte_1]=state_0,
-	[state_0][byte_2]=state_0,
-	[state_0][byte_3]=state_0,
-	/*step 1*/
-	[state_1][byte_0]=state_0,
-	[state_1][byte_1]=state_2,
-	[state_1][byte_2]=state_0,
-	[state_1][byte_3]=state_0,
-	/*step 2*/
-	[state_2][byte_0]=state_0,
-	[state_2][byte_1]=state_0,
-	[state_2][byte_2]=state_3,
-	[state_2][byte_3]=state_0,
-	/*step 3*/
-	[state_3][byte_0]=state_0,
-	[state_3][byte_1]=state_0,
-	[state_3][byte_2]=state_0,
-	[state_3][byte_3]=state_final,
-};
 
-usart_bytes get_usart_byte(unsigned char byte)
-{
-//	switch(byte)
-//	{
-//		case START_BYTE_0:
-//			return byte_0;
-//			break;
-//		case START_BYTE_1:
-//			return byte_1;
-//			break;
-//		case ID_NETWORK:
-//			return byte_2;
-//			break;
-//		case ID_REMOTE_CNTRL:
-//			return byte_3;
-//			break;
-//		default:
-//			return byte_0;
-//	}
-	return byte_0;
-}
 
