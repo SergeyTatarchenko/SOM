@@ -6,7 +6,7 @@
 *************************************************/
 #include "hw_support.h"
 /*-----------------------------------------------*/
-
+#if HARDWARE_OBJECT == TRUE
 /*obj model ADC driver, get pointer to adc data array */
 void obj_adc_driver(uint16_t* data)
 {
@@ -37,7 +37,7 @@ void obj_input_driver(uint8_t *registr, int num_of_inputs)
 		input += reg_size;
 	}
 }
-
+#endif
 /*obj model hw snap state to state */
 void obj_hw_state(OBJ_STRUCT *obj,uint8_t input)
 {

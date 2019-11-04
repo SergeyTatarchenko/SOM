@@ -339,6 +339,13 @@ void Rx_OBJ_Data(USART_FRAME *mes){
 		}
 	}
 }
+
+/*minimal init for object model */
+void SOM_Init()
+{
+	OBJ_Init();	
+}
+
 /************************task creation functions*************************/
 
 /*task creation function for object model*/

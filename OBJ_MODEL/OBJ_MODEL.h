@@ -282,6 +282,8 @@ extern void ((*obj_handlers[num_of_all_obj+1]))(void*);
 -----------------------------------------------*/
 /*init obj model memory*/
 void OBJ_Init(void);
+/*object init without task and queue (mimimal init!!!)*/
+void SOM_Init(void);
 /*init obj model tasks*/
 void OBJ_task_init(OBJ_MODEL_PRIORITY *task_priority,int tick_update_rate);
 /*object memory binding*/
