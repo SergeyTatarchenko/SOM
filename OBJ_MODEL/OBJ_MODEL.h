@@ -1,13 +1,12 @@
 /*************************************************
 * File Name          : OBJ_MODEL.h
 * Author             : Tatarchenko S.
-* Version            : v 1.5.1
+* Version            : v 1.5.2
 * Description        : header for OBJ_MODEL.c 
 *************************************************/
 #ifndef OBJ_DATA_H_
 #define	OBJ_DATA_H_
 /*-----------------------------------------------*/
-#include "string.h"
 #include "stdint.h"
 /*-----------------------------------------------*/
 /*------------object description-----------------*/
@@ -81,16 +80,18 @@ typedef	struct{
 					unsigned rez3  : 1;
 					unsigned rez4  : 1;
 					unsigned rez5  : 1;
-					unsigned visible  : 1;
+					unsigned rez6  : 1;
 					unsigned hardware  : 1;
 				}bit;
 			}control_byte;
-			/* max 255 hwobj */
-			uint8_t HW_adress;
-			/*max 255 soft timers */
-			uint8_t TimerID;
+			union{
+				/* max 255 hwobj */
+				uint8_t HW_adress;
+				/*max 255 soft timers */
+				uint8_t TimerID;
+			}obj_type;
 			/*rezerv*/
-			uint8_t rezerv[3];
+			uint8_t rezerv[4];
 			/*value field*/
 			uint16_t value;
 		}default_field;
@@ -127,7 +128,7 @@ typedef struct {
 #pragma pack(push,1)
 typedef union{
 	struct{
-		uint8_t start_seq[2] ;  
+		uint8_t start_seq[2];  
         uint8_t id_netw;
         uint8_t id_modul;
         OBJ_STRUCT object;
@@ -171,19 +172,16 @@ typedef union{
 #define obj_event						obj_field.default_field.control_byte.bit.event
 #define obj_state						obj_field.default_field.control_byte.bit.state
 #define obj_value						obj_field.default_field.value
-#define hardware_adress					obj_field.default_field.HW_adress
-#define timer_adress					obj_field.default_field.TimerID
-#define obj_visible						obj_field.default_field.control_byte.bit.visible
+#define hardware_adress					obj_field.default_field.obj_type.HW_adress
+#define timer_adress					obj_field.default_field.obj_type.TimerID
 #define obj_hardware					obj_field.default_field.control_byte.bit.hardware
 #define obj_data						obj_field.data_field.data
 
-#define dWordL						obj_field.data_field.extended_field.dWord.dL
-#define dWordH						obj_field.data_field.extended_field.dWord.dH
+#define dWordL							obj_field.data_field.extended_field.dWord.dL
+#define dWordH							obj_field.data_field.extended_field.dWord.dH
 /*---------------------------------------------*/
 #define this_obj(obj_id)				(objDefault + obj_id)
 #define this_obj_state(obj_id)			this_obj(obj_id)->obj_state
-#define obj_set_visible(obj_id)			this_obj(obj_id)->obj_visible = TRUE
-#define obj_set_unvisible(obj_id)		this_obj(obj_id)->obj_visible = FALSE
 #define obj_update(obj_id)				obj_handlers[obj_id](this_obj(obj_id))
 #define obj_state_on(obj_id)			this_obj(obj_id)->obj_state = TRUE;	\
 										OBJ_Event(obj_id)
@@ -243,10 +241,12 @@ typedef union{
 	extern uint8_t	usart_data_stream[USART_STREAM_SIZE];
 	/* data array for usart obj receive */
 	extern uint8_t usart_data_receive_array[USART1_DEFAULT_BUF_SIZE];
-	/*mutex  to perform currect usart transmit */
-	extern xSemaphoreHandle xMutex_USART_BUSY;
-	/*queue of messages from usart module*/
-	extern xQueueHandle usart_receive_buffer;
+	#if RTOS_USAGE == TRUE
+		/*mutex  to perform currect usart transmit */
+		extern xSemaphoreHandle xMutex_USART_BUSY;
+		/*queue of messages from usart module*/
+		extern xQueueHandle usart_receive_buffer;
+	#endif
 	/*usart data byte counter */
 	extern uint8_t usart_irq_counter;
 #endif
@@ -266,7 +266,10 @@ typedef union{
 extern OBJ_STRUCT *objDefault;
 extern BOARD_STATE	board_state;
 extern uint32_t num_of_obj;
-extern OBJ_MODEL_PRIORITY task_priority;
+
+#if RTOS_USAGE == TRUE
+	extern OBJ_MODEL_PRIORITY task_priority;
+#endif
 extern void ((*obj_handlers[num_of_all_obj+1]))(void*);
 
 #if	HARDWARE_OBJECT == TRUE
@@ -300,10 +303,6 @@ void OBJ_Event(int obj_id);
 void OBJ_SetState(int obj_id,int state);
 /*test*/
 void set_all_obj_off(void);
-/*update this obj */
-void OBJ_Upd_USART(OBJ_STRUCT *obj);
-/*update all obj */
-void Upd_All_OBJ_USART(void);
 /* FAST!!! update all obj */
 void FAST_Upd_All_OBJ_USART(void);
 /*receive object data from message*/

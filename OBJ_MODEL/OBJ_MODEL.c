@@ -1,7 +1,7 @@
 /*************************************************
 * File Name          : OBJ_MODEL.c
 * Author             : Tatarchenko S.
-* Version            : v 1.5.1
+* Version            : v 1.5.2
 * Description        : Simple Obj Model 
 *************************************************/
 #include "OBJ_MODEL.h"
@@ -15,15 +15,21 @@ OBJ_STRUCT *objDefault;
 BOARD_STATE	board_state;
 /*array of pointers to object handler functions*/
 void ((*obj_handlers[num_of_all_obj+1]))(void*);
-/*number of objects created*/
+
+/*
+	number of objects created;
+	the variable must not exceed the value of num_of_all_obj !!!
+*/
 uint32_t num_of_obj;
+
 #if HARDWARE_OBJECT == TRUE
 /*array of pointers to hardware objects*/
 OBJ_STRUCT *HW_OBJ[NUM_OF_HWOBJ];
 #endif
+#if RTOS_USAGE == TRUE
 /*tasks init struct*/
 OBJ_MODEL_PRIORITY task_priority;
-
+#endif
 #if OBJECT_TIMER == TRUE
 	TimerHandle_t obj_timers[NUM_OF_TIMER];
 #endif
@@ -36,18 +42,21 @@ OBJ_MODEL_PRIORITY task_priority;
 	uint8_t	usart_data_stream[USART_STREAM_SIZE];
 	/* data array for usart obj receive */
 	uint8_t usart_data_receive_array[USART1_DEFAULT_BUF_SIZE];
-	/*mutex  to perform currect usart transmit */
-	xSemaphoreHandle xMutex_USART_BUSY;
-	/*queue of messages from usart module*/
-	xQueueHandle usart_receive_buffer;
 	/*usart data byte counter */
 	uint8_t usart_irq_counter = 0;
+	#if RTOS_USAGE == TRUE
+		/*mutex  to perform currect usart transmit */
+		xSemaphoreHandle xMutex_USART_BUSY;
+		/*queue of messages from usart module*/
+		xQueueHandle usart_receive_buffer;
+	#endif
 #endif
 
 /*-----------------------------------------------*/
 
 /*init obj model*/
-void OBJ_Init(){
+void OBJ_Init()
+{
 	
 	OBJ_STRUCT *obj;
     obj_init_struct _model_init_[] ={_obj_cofig_};
@@ -83,44 +92,58 @@ void OBJ_Init(){
 }
 
 /*object creating and snap*/
-void obj_snap(obj_init_struct* _model_init_,int _model_size_){
-	for(int i = 0;i<(_model_size_/sizeof(obj_init_struct));i++){
+void obj_snap(obj_init_struct* _model_init_,int _model_size_)
+{
+	for(int i = 0;i<(_model_size_/sizeof(obj_init_struct));i++)
+	{
 		#if HARDWARE_OBJECT == TRUE
 		/*hardware obj create*/
-		if(_model_init_[i].obj_type == obj_hard){
+		if(_model_init_[i].obj_type == obj_hard)
+		{
 			HWObj_Create(_model_init_[i].id,_model_init_[i].obj_class,_model_init_[i].HW_adress);
 		}
 		#endif
 		/*soft obj create*/
-		if(_model_init_[i].obj_type == obj_soft){
+		if(_model_init_[i].obj_type == obj_soft)
+		{
 			Obj_Create(_model_init_[i].id,_model_init_[i].obj_class);
 		}
 		#if OBJECT_TIMER == TRUE 
 		/*timers creation*/
-		if(_model_init_[i].obj_type == obj_timer){
+		if(_model_init_[i].obj_type == obj_timer)
+		{
 			Timer_Create(_model_init_[i].id,_model_init_[i].obj_class,_model_init_[i].delay,_model_init_[i].handler_pointer);
 		}
 		#endif
 		/*handlers swap*/
-		if(_model_init_[i].handler_pointer!= NULL){
+		if(_model_init_[i].handler_pointer!= NULL)
+		{
 			obj_handlers[_model_init_[i].id] = (void(*)(void*))_model_init_[i].handler_pointer;
 		}
 	}
 }
 
 /*create object, return pointer to obj */
-OBJ_STRUCT* Obj_Create(int obj_id, int obj_type ){
-	
+OBJ_STRUCT* Obj_Create(int obj_id, int obj_type )
+{
 	OBJ_STRUCT* obj;
-	obj = objDefault + obj_id;
-	obj->id[1] = obj_type;
-	obj->obj_visible = TRUE;
-	return obj;
+	if(obj_id > num_of_all_obj)
+	{
+		return obj;	
+	}
+	else
+	{
+		obj = objDefault + obj_id;
+		obj->id[1] = obj_type;
+		return obj;
+	}
 }
+
 
 #if HARDWARE_OBJECT == TRUE
 /*create hardware object, return pointer to obj */
-OBJ_STRUCT* HWObj_Create(int obj_id, int obj_type,int hwobj ){
+OBJ_STRUCT* HWObj_Create( int obj_id, int obj_type,int hwobj )
+{
 	
 	OBJ_STRUCT* obj = Obj_Create(obj_id,obj_type);
 	HW_OBJ[hwobj]= this_obj(obj_id); 
@@ -132,7 +155,8 @@ OBJ_STRUCT* HWObj_Create(int obj_id, int obj_type,int hwobj ){
 
 #if OBJECT_TIMER == TRUE
 /*create hardware object, return pointer to obj */
-OBJ_STRUCT* Timer_Create(int obj_id, int obj_type,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*)){
+OBJ_STRUCT* Timer_Create(int obj_id, int obj_type,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*))
+{
 	static int num_of_timer = 1;
 	OBJ_STRUCT* obj = Obj_Create(obj_id,obj_type);
 	obj->timer_adress = num_of_timer;
@@ -152,6 +176,7 @@ void OBJ_SetState(int obj_id,int state){
 		obj_handlers[obj_id](this_obj(obj_id));
 	}
 }
+/*do not use this function*/
 void set_all_obj_off(void)
 {
 	for(int i = 0; i < num_of_obj;i++)
@@ -187,47 +212,6 @@ void OBJ_Event(int obj_id){
 	}	
 }
 
-/*           update this object             */
-void	OBJ_Upd_USART(OBJ_STRUCT *obj){
-
-		uint8_t *pointer;
-		USART_FRAME message;
-		USART_FRAME *message_pointer;
-		uint16_t _CRC_ = 0;
-		message_pointer =&message;
-	
-		/*create default message with obj info*/
-		message_pointer->d_struct.id_netw = ID_NETWORK;
-		message_pointer->d_struct.id_modul = ID_DEVICE;
-	
-		pointer = (uint8_t*)message_pointer;
-		pointer += (sizeof(message.d_struct.id_netw)+sizeof(message.d_struct.id_modul));
-		memcpy(pointer,obj,sizeof(OBJ_STRUCT));
-	
-		/* Calc check summ */
-		for(int i = 0; i < LEN_USART_MSG_OBJ - LEN_CRC; i++){
-			_CRC_ += message_pointer->byte[i];
-		}
-		message_pointer->d_struct.crc = _CRC_;
-	
-		/*mutex return in dma transfer complete interrupt*/
-		xSemaphoreTake(xMutex_USART_BUSY,portMAX_DELAY);
-		send_usart_message((uint8_t*)message_pointer,sizeof(USART_FRAME));	// transfer data to usart
-
-	/*message delay for corrent receive */
-	vTaskDelay(5);
-}
-
-/*             update all obj                */
-void Upd_All_OBJ_USART(){
-	
-	for(int counter = 0; counter < num_of_all_obj; counter ++){
-		if(this_obj(counter)->typeof_obj != 0){
-			OBJ_Upd_USART(this_obj(counter));
-		}
-	}
-}
-
 /*         fast update all obj with DMA      */
 #ifdef	USART_DATA_FAST
 void FAST_Upd_All_OBJ_USART(void){
@@ -240,32 +224,35 @@ void FAST_Upd_All_OBJ_USART(void){
 	
 	/*pointer to memory space of USART frame*/
 	usart_memory_pointer =(USART_FRAME*)USART_DATA;		
-		/*fill ID and NETWORK*/
-		object_frame.d_struct.id_netw = ID_NETWORK;
-		object_frame.d_struct.id_modul = ID_DEVICE;
-		//
-		object_frame.d_struct.start_seq[0] = (uint8_t)START_BYTE_0;
-		object_frame.d_struct.start_seq[1] = (uint8_t)START_BYTE_1;
-		object_frame.d_struct.stop_seq = (uint8_t)STOP_BYTE;
-		//
-		/*fill object field*/
-		pointer = (uint8_t*)&object_frame;
-		pointer += (sizeof(object_frame.d_struct.id_netw)+sizeof(object_frame.d_struct.id_modul)+
-					sizeof(object_frame.d_struct.start_seq));
+	/*fill ID and NETWORK*/
+	object_frame.d_struct.id_netw = ID_NETWORK;
+	object_frame.d_struct.id_modul = ID_DEVICE;
+	object_frame.d_struct.start_seq[0] = (uint8_t)START_BYTE_0;
+	object_frame.d_struct.start_seq[1] = (uint8_t)START_BYTE_1;
+	object_frame.d_struct.stop_seq = (uint8_t)STOP_BYTE;
+	/*fill object field*/
+	pointer = (uint8_t*)&object_frame;
+	pointer += (sizeof(object_frame.d_struct.id_netw) + sizeof(object_frame.d_struct.id_modul)
+			+ sizeof(object_frame.d_struct.start_seq));
 	/*fill array of USART obj*/
-	for(int counter = 1; counter < num_of_all_obj; counter ++ ){
-		_CRC_ = 0;
-		
-		if(this_obj(counter)->typeof_obj == 0){
-			if(obj_counter > num_of_obj){
+	for(int counter = 1; counter < num_of_all_obj; counter ++ )
+	{
+		_CRC_ = 0;	
+		if(this_obj(counter)->typeof_obj == 0)
+		{
+			if(obj_counter > num_of_obj)
+			{
 				break;
-			}else{
+			}
+			else
+			{
 				continue;
 			}
 		}
 		memcpy(pointer,this_obj(counter),sizeof(OBJ_STRUCT));
 		/*fill CRC field*/
-		for(int i = 0 + LEN_START; i < LEN_USART_MSG_OBJ - (LEN_CRC + LEN_STOP); i++){
+		for(int i = 0 + LEN_START; i < LEN_USART_MSG_OBJ - (LEN_CRC + LEN_STOP); i++)
+		{
 			_CRC_ += object_frame.byte[i];
 		}
 		object_frame.d_struct.crc = _CRC_;
@@ -274,16 +261,17 @@ void FAST_Upd_All_OBJ_USART(void){
 		usart_memory_pointer++;
 		obj_counter++;
 	}
+	#if RTOS_USAGE == TRUE
 	/*mutex return in dma transfer complete interrupt*/
 	xSemaphoreTake(xMutex_USART_BUSY,500);
+	#endif
 	send_usart_message(USART_DATA,sizeof(USART_FRAME)*obj_counter);	// transfer data to usart
 }
 #endif
 
-
-
 /*create CAN message with extended ID, return message*/
-CAN_OBJ_FRAME can_obj_create_message (int obj_id){
+CAN_OBJ_FRAME can_obj_create_message (int obj_id)
+{
 	CAN_OBJ_FRAME message;
 	
 	message.id = (((this_obj(obj_id)->id[0])&can_obj_mask)|
@@ -295,48 +283,42 @@ CAN_OBJ_FRAME can_obj_create_message (int obj_id){
 }
 
 /* Receive Data Obj with USART */
-void Rx_OBJ_Data(USART_FRAME *mes){
+void Rx_OBJ_Data(USART_FRAME *mes)
+{
 	int i = 0;
 	uint16_t _CRC = 0;	
 	OBJ_STRUCT *obj = objDefault + mes->d_struct.object.idof_obj;
-
+	/*crc calculating*/
 	for(i = 0 + LEN_START; i < LEN_USART_MSG_OBJ - (LEN_CRC + LEN_STOP); i++)
 	{
 		_CRC += mes->byte[i];
 	}
 	
-	if(_CRC != mes->d_struct.crc){
+	if(_CRC != mes->d_struct.crc)
+	{
 		/*error crc do not match*/
 		return;
 	}
-	/*------board control object, software special----------*/
-	if(mes->d_struct.object.idof_obj == obj_STATUS){
-		this_obj(obj_STATUS)->status_field = mes->d_struct.object.status_field;
-		OBJ_Event(obj_STATUS);
-		return;
+/*-----------------------------------------------------*/
+	/*extended data field*/
+	if(mes->d_struct.object.typeof_obj == IND_obj_COM)
+	{	
+		obj->dWordL = mes->d_struct.object.dWordL;
+		obj->dWordH = mes->d_struct.object.dWordH;	
+		OBJ_Event(mes->d_struct.object.idof_obj);
+		return;		
 	}
-	/*-----------------------------------------------------*/
-	if(board_power == 1){
-		/*extended data field*/
-		if(mes->d_struct.object.typeof_obj == IND_obj_COM){
-			
-			obj->dWordL = mes->d_struct.object.dWordL;
-			obj->dWordH = mes->d_struct.object.dWordH;
-			
-			OBJ_Event(mes->d_struct.object.idof_obj);
-			return;		
-		}
-		/*object event*/
-		if(mes->d_struct.object.obj_event == 1){
-			if( (mes->d_struct.object.typeof_obj == obj->typeof_obj) && 
-				((obj->typeof_obj == IND_obj_CAS)||(obj->typeof_obj == IND_obj_CWS)) )
-			{
-			obj->status_field = mes->d_struct.object.status_field;	
-			obj->obj_value = mes->d_struct.object.obj_value;
-			/*event bit call object handler*/
-			OBJ_Event(mes->d_struct.object.idof_obj);	
-			}	
-		}
+	/*object event*/
+	if(mes->d_struct.object.obj_event == 1)
+	{
+		if( (mes->d_struct.object.typeof_obj == obj->typeof_obj) && 
+			((obj->typeof_obj == IND_obj_CAS)||(obj->typeof_obj == IND_obj_CWS)) )
+		{
+		obj->status_field = mes->d_struct.object.status_field;	
+		obj->obj_value = mes->d_struct.object.obj_value;
+		/*event bit call object handler*/
+		OBJ_Event(mes->d_struct.object.idof_obj);	
+		}	
 	}
 }
 
