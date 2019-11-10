@@ -1,13 +1,16 @@
 /*************************************************
 * File Name          : OBJ_MODEL.h
 * Author             : Tatarchenko S.
-* Version            : v 1.5.2
+* Version            : v 1.5.3
 * Description        : header for OBJ_MODEL.c 
 *************************************************/
 #ifndef OBJ_DATA_H_
 #define	OBJ_DATA_H_
 /*-----------------------------------------------*/
 #include "stdint.h"
+#include "string.h"
+/*-----------------------------------------------*/
+#define NSD			0			// not used option	
 /*-----------------------------------------------*/
 /*------------object description-----------------*/
 /*-----------------------------------------------*/
@@ -318,19 +321,19 @@ void _task__OBJ_data_tx(void *pvParameters);
 ****DEVICE SPECIFIC COMMUNICATION FUNCTIONS*****
 -----------------------------------------------*/
 /*usart transfer , board specific */
-__weak void send_usart_message(uint8_t *message,uint32_t buf_size);
+void send_usart_message(uint8_t *message,uint32_t buf_size) __attribute__ ((weak));
 /*CAN transfer, board specific*/
-__weak void send_can_message(CAN_OBJ_FRAME message);
+void send_can_message(CAN_OBJ_FRAME message) __attribute__ ((weak));
 /*-----------------------------------------------
 ***********REDEFINABLE FUNCTIONS*****************
 -----------------------------------------------*/
 /*hardware event handler, board special*/
-__weak void HWOBJ_Event(int obj_id);
+void HWOBJ_Event(int obj_id) __attribute__ ((weak));
 /*empty handler (can be changed)*/
-__weak void Dummy_Handler(OBJ_STRUCT *obj);
+void Dummy_Handler(OBJ_STRUCT *obj) __attribute__ ((weak));
 /*obj model setup, config usart update rate, config object initial state */
-__weak void obj_model_setup(void);
+void obj_model_setup(void) __attribute__ ((weak));
 /*obj model loop */
-__weak void obj_model_task(int tick);
+void obj_model_task(int tick) __attribute__ ((weak));
 /*-----------------------------------------------*/
 #endif

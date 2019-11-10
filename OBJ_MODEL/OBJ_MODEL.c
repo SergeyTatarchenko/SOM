@@ -1,7 +1,7 @@
 /*************************************************
 * File Name          : OBJ_MODEL.c
 * Author             : Tatarchenko S.
-* Version            : v 1.5.2
+* Version            : v 1.5.3
 * Description        : Simple Obj Model 
 *************************************************/
 #include "OBJ_MODEL.h"
@@ -380,31 +380,31 @@ void _task__OBJ_data_rx (void *pvParameters){
 }
 /************************weak function*************************/
 /*usart message*/
-__weak void send_usart_message(uint8_t *message,uint32_t buf_size){
+void send_usart_message(uint8_t *message,uint32_t buf_size)
+{
 	
 }
 /*CAN message*/
-__weak void send_can_message(CAN_OBJ_FRAME message){
+void send_can_message(CAN_OBJ_FRAME message)
+{
 
 }
-
 /*obj model setup, config usart update rate, config object initial state */
-__weak void obj_model_setup(void){
-
+void obj_model_setup(void)
+{
 
 }
 /*obj model loop*/
-__weak void obj_model_task(int tick){
-
-
+void obj_model_task(int tick)
+{
 }
 /*empty handler*/
-__weak void Dummy_Handler(OBJ_STRUCT *obj){
-	
+void Dummy_Handler(OBJ_STRUCT *obj)
+{	
 }
 
-__weak void HWOBJ_Event(int obj_id){
-	   
+void HWOBJ_Event(int obj_id)
+{	   
 }
 
 
