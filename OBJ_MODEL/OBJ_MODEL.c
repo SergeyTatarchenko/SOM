@@ -380,30 +380,30 @@ void _task__OBJ_data_rx (void *pvParameters){
 }
 /************************weak function*************************/
 /*usart message*/
-void send_usart_message(uint8_t *message,uint32_t buf_size)
+void __attribute__((weak)) send_usart_message(uint8_t *message,uint32_t buf_size)
 {
 	
 }
 /*CAN message*/
-void send_can_message(CAN_OBJ_FRAME message)
+void __attribute__((weak)) send_can_message(CAN_OBJ_FRAME message)
 {
 
 }
 /*obj model setup, config usart update rate, config object initial state */
-void obj_model_setup(void)
+void __attribute__((weak)) obj_model_setup(void)
 {
 
 }
 /*obj model loop*/
-void obj_model_task(int tick)
+void __attribute__((weak)) obj_model_task(int tick)
 {
 }
 /*empty handler*/
-void Dummy_Handler(OBJ_STRUCT *obj)
+void __attribute__((weak)) Dummy_Handler(OBJ_STRUCT *obj)
 {	
 }
 
-void HWOBJ_Event(int obj_id)
+void __attribute__((weak)) HWOBJ_Event(int obj_id) 
 {	   
 }
 
