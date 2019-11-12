@@ -37,9 +37,11 @@ OBJ_MODEL_PRIORITY task_priority;
 #ifdef USART_COM_ENABLE
 	/*pointer to an array of frames in the message for USART*/
 	uint8_t USART_DATA[sizeof(USART_FRAME)*num_of_all_obj];
+	
 	/* data array for usart obj transfer */
 	uint8_t	usart_data_transmit_array[USART1_DEFAULT_BUF_SIZE];
 	uint8_t	usart_data_stream[USART_STREAM_SIZE];
+	
 	/* data array for usart obj receive */
 	uint8_t usart_data_receive_array[USART1_DEFAULT_BUF_SIZE];
 	/*usart data byte counter */
@@ -57,7 +59,6 @@ OBJ_MODEL_PRIORITY task_priority;
 /*init obj model*/
 void OBJ_Init()
 {
-	
 	OBJ_STRUCT *obj;
     obj_init_struct _model_init_[] ={_obj_cofig_};
 	/* object memory allocation*/

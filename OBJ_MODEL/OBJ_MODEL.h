@@ -235,13 +235,31 @@ typedef union{
 #if RTOS_USAGE == TRUE
 	#include "RTOS.h"
 #endif
+/*-----------------------------------------------
+***************COMMON VARIABLES******************
+-----------------------------------------------*/
 
-/*-----------------------------------------------*/
+extern OBJ_STRUCT *objDefault;
+extern BOARD_STATE	board_state;
+extern uint32_t num_of_obj;
 
-#if USART_COM_ENABLE == TRUE
+#if RTOS_USAGE == TRUE
+	extern OBJ_MODEL_PRIORITY task_priority;
+#endif
+extern void ((*obj_handlers[num_of_all_obj+1]))(void*);
+
+#if	HARDWARE_OBJECT == TRUE
+	extern OBJ_STRUCT *HW_OBJ[NUM_OF_HWOBJ];
+#endif
+
+#if USART_COM_ENABLE == TRUE	
+	/*pointer to an array of frames in the message for USART*/
+	extern uint8_t USART_DATA[sizeof(USART_FRAME)*num_of_all_obj];
+	/*<old codebase/>*/
 	/* data array for usart obj transfer */
 	extern uint8_t	usart_data_transmit_array[USART1_DEFAULT_BUF_SIZE];
 	extern uint8_t	usart_data_stream[USART_STREAM_SIZE];
+	/*</old codebase>*/
 	/* data array for usart obj receive */
 	extern uint8_t usart_data_receive_array[USART1_DEFAULT_BUF_SIZE];
 	#if RTOS_USAGE == TRUE
@@ -260,27 +278,6 @@ typedef union{
 	CAN_OBJ_FRAME can_obj_create_message (int obj_id);
 	uint32_t can_queue_obj_fill(CAN_OBJ_FRAME message);
 	void can_obj_send_routine(uint32_t tick);
-#endif
-
-/*-----------------------------------------------
-***************COMMON VARIABLES******************
------------------------------------------------*/
-
-extern OBJ_STRUCT *objDefault;
-extern BOARD_STATE	board_state;
-extern uint32_t num_of_obj;
-
-#if RTOS_USAGE == TRUE
-	extern OBJ_MODEL_PRIORITY task_priority;
-#endif
-extern void ((*obj_handlers[num_of_all_obj+1]))(void*);
-
-#if	HARDWARE_OBJECT == TRUE
-	extern OBJ_STRUCT *HW_OBJ[NUM_OF_HWOBJ];
-#endif	
-
-#if USART_DATA_FAST == TRUE
-	extern uint8_t USART_DATA[sizeof(USART_FRAME)*num_of_all_obj];	
 #endif
 
 /*-----------------------------------------------
