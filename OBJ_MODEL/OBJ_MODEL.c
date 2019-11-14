@@ -198,7 +198,7 @@ void OBJ_Event(int obj_id){
 		}
 		#if OBJECT_TIMER == TRUE
 		/*timer event*/
-		if(this_obj(obj_id)->timer_adress != 0){
+		if((this_obj(obj_id)->timer_adress != 0)&&(this_obj(obj_id)->obj_hardware == FALSE)){
 			xTimerStart(obj_timers[this_obj(obj_id)->timer_adress],0);
 		}
 		#endif
