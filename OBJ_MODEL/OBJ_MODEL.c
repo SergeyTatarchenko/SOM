@@ -86,7 +86,7 @@ void OBJ_Init()
 	/*get current number of objects in memory area */
 	num_of_obj = 0;
 	for(int i = 0;i<=num_of_all_obj;i++){
-		if(this_obj(i)->typeof_obj != 0){
+		if(this_obj(i)->class_of_obj != 0){
 			num_of_obj++;
 		}
 	}
@@ -107,7 +107,7 @@ void obj_snap(obj_init_struct* _model_init_,int _model_size_)
 		/*soft obj create*/
 		if(_model_init_[i].obj_type == obj_soft)
 		{
-			Obj_Create(_model_init_[i].id,_model_init_[i].obj_class);
+			Obj_Create(_model_init_[i].id,_model_init_[i].obj_class,_model_init_[i].obj_type);
 		}
 		#if OBJECT_TIMER == TRUE 
 		/*timers creation*/
@@ -125,7 +125,7 @@ void obj_snap(obj_init_struct* _model_init_,int _model_size_)
 }
 
 /*create object, return pointer to obj */
-OBJ_STRUCT* Obj_Create(int obj_id, int obj_type )
+OBJ_STRUCT* Obj_Create(int obj_id, int obj_class, int obj_type)
 {
 	OBJ_STRUCT* obj;
 	if(obj_id > num_of_all_obj)
@@ -135,7 +135,8 @@ OBJ_STRUCT* Obj_Create(int obj_id, int obj_type )
 	else
 	{
 		obj = objDefault + obj_id;
-		obj->id[1] = obj_type;
+		obj->id[1] = obj_class;
+		obj->typeof_obj = obj_type;
 		return obj;
 	}
 }
@@ -143,10 +144,10 @@ OBJ_STRUCT* Obj_Create(int obj_id, int obj_type )
 
 #if HARDWARE_OBJECT == TRUE
 /*create hardware object, return pointer to obj */
-OBJ_STRUCT* HWObj_Create( int obj_id, int obj_type,int hwobj )
+OBJ_STRUCT* HWObj_Create( int obj_id, int obj_class,int hwobj )
 {
 	
-	OBJ_STRUCT* obj = Obj_Create(obj_id,obj_type);
+	OBJ_STRUCT* obj = Obj_Create(obj_id,obj_class,obj_hard);
 	HW_OBJ[hwobj]= this_obj(obj_id); 
 	obj->hardware_adress = hwobj;
 	obj->obj_hardware = TRUE;
@@ -159,7 +160,7 @@ OBJ_STRUCT* HWObj_Create( int obj_id, int obj_type,int hwobj )
 OBJ_STRUCT* Timer_Create(int obj_id, int obj_type,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*))
 {
 	static int num_of_timer = 1;
-	OBJ_STRUCT* obj = Obj_Create(obj_id,obj_type);
+	OBJ_STRUCT* obj = Obj_Create(obj_id,obj_type,obj_timer);
 	obj->timer_adress = num_of_timer;
 	obj_timers[num_of_timer] = xTimerCreate("",delay,FALSE,(void*)&obj->timer_adress,(void(*)(void*))handler_pointer);
 	num_of_timer++;	
@@ -182,7 +183,7 @@ void set_all_obj_off(void)
 {
 	for(int i = 0; i < num_of_obj;i++)
 	{
-		if((objDefault+i)->typeof_obj != 0)
+		if((objDefault+i)->class_of_obj != 0)
 		{
 			obj_state_off(i);
 		}
@@ -192,22 +193,27 @@ void set_all_obj_off(void)
 /* object event, call object handler and call update function, if event = 1 */
 void OBJ_Event(int obj_id){
 	
-	if(this_obj(obj_id)->typeof_obj != 0){
-		if(this_obj(obj_id)->obj_hardware == TRUE){
+	if(this_obj(obj_id)->class_of_obj != 0)
+	{
+		if((this_obj(obj_id)->obj_hardware == TRUE)&&(this_obj(obj_id)->typeof_obj == obj_hard))
+		{
 			HWOBJ_Event(obj_id);		
 		}
 		#if OBJECT_TIMER == TRUE
 		/*timer event*/
-		if((this_obj(obj_id)->timer_adress != 0)&&(this_obj(obj_id)->obj_hardware == FALSE)){
+		if((this_obj(obj_id)->timer_adress != 0)&&(this_obj(obj_id)->typeof_obj == obj_timer))
+		{
 			xTimerStart(obj_timers[this_obj(obj_id)->timer_adress],0);
 		}
 		#endif
 		/* default soft object*/
-		else{
+		else
+		{
 			obj_handlers[obj_id](this_obj(obj_id));
 		}
 				/*feedback*/		
-		if(this_obj(obj_id)->obj_event == 1){
+		if(this_obj(obj_id)->obj_event == 1)
+		{
 			this_obj(obj_id)->obj_event = 0;
 		}
 	}	
@@ -239,7 +245,7 @@ void FAST_Upd_All_OBJ_USART(void){
 	for(int counter = 1; counter < num_of_all_obj; counter ++ )
 	{
 		_CRC_ = 0;	
-		if(this_obj(counter)->typeof_obj == 0)
+		if(this_obj(counter)->class_of_obj == 0)
 		{
 			if(obj_counter > num_of_obj)
 			{
@@ -264,7 +270,7 @@ void FAST_Upd_All_OBJ_USART(void){
 	}
 	#if RTOS_USAGE == TRUE
 	/*mutex return in dma transfer complete interrupt*/
-	xSemaphoreTake(xMutex_USART_BUSY,500);
+	xSemaphoreTake(xMutex_USART_BUSY,portMAX_DELAY);
 	#endif
 	send_usart_message(USART_DATA,sizeof(USART_FRAME)*obj_counter);	// transfer data to usart
 }
@@ -302,7 +308,7 @@ void Rx_OBJ_Data(USART_FRAME *mes)
 	}
 /*-----------------------------------------------------*/
 	/*extended data field*/
-	if(mes->d_struct.object.typeof_obj == IND_obj_COM)
+	if(mes->d_struct.object.class_of_obj == IND_obj_COM)
 	{	
 		obj->dWordL = mes->d_struct.object.dWordL;
 		obj->dWordH = mes->d_struct.object.dWordH;	
@@ -312,8 +318,8 @@ void Rx_OBJ_Data(USART_FRAME *mes)
 	/*object event*/
 	if(mes->d_struct.object.obj_event == 1)
 	{
-		if( (mes->d_struct.object.typeof_obj == obj->typeof_obj) && 
-			((obj->typeof_obj == IND_obj_CAS)||(obj->typeof_obj == IND_obj_CWS)) )
+		if( (mes->d_struct.object.class_of_obj == obj->class_of_obj) && 
+			((obj->class_of_obj == IND_obj_CAS)||(obj->class_of_obj == IND_obj_CWS)) )
 		{
 		obj->status_field = mes->d_struct.object.status_field;	
 		obj->obj_value = mes->d_struct.object.obj_value;

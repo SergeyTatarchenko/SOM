@@ -18,26 +18,24 @@ void obj_adc_driver(uint16_t* data)
 	}
 }
 /*obj model input driver, get pointer to inputs register array */
-void obj_input_driver(uint8_t *registr, int num_of_inputs)
+void obj_input_driver(uint8_t *registr,int num_of_inputs,int reg_size,OBJ_HW input)
 {
-#define input_bit_mask	0x01
-#define reg_size	8
-	
-	obj_hw input = in_0;
 	uint8_t *mem_pointer = registr;
-	uint8_t reg = *mem_pointer;	
+	uint8_t reg = *mem_pointer;
 		for(int i = 0;i<num_of_inputs;i++)
 	{
-		for(int i = input;i<reg_size;i++)
+		for(int j = input;j<reg_size;j++)
 		{
-			obj_hw_state(HW_OBJ[i],(reg&input_bit_mask));
+			obj_hw_state(HW_OBJ[j],(reg&input_bit_mask));
 			reg>>=input_bit_mask;	
 		}
 		mem_pointer ++;
+		reg = *mem_pointer;
 		input += reg_size;
 	}
 }
 #endif
+
 /*obj model hw snap state to state */
 void obj_hw_state(OBJ_STRUCT *obj,uint8_t input)
 {
@@ -59,7 +57,7 @@ void obj_hw_value(OBJ_STRUCT *obj,uint16_t value)
 {
 	if(obj->obj_hardware)
 	{
-		/*update value from ADC DR*/
+		/* value update */
 		if(value != obj->obj_value)
 		{
 			obj->obj_value = value;

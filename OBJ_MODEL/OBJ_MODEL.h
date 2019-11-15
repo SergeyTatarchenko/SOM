@@ -87,14 +87,15 @@ typedef	struct{
 					unsigned hardware  : 1;
 				}bit;
 			}control_byte;
+			uint8_t obj_type;
 			union{
 				/* max 255 hwobj */
 				uint8_t HW_adress;
 				/*max 255 soft timers */
 				uint8_t TimerID;
-			}obj_type;
+			}obj_swap;
 			/*rezerv*/
-			uint8_t rezerv[4];
+			uint8_t rezerv[3];
 			/*value field*/
 			uint16_t value;
 		}default_field;
@@ -170,13 +171,14 @@ typedef union{
 #include "obj_model_config.h"
 /*---------------------------------------------*/
 #define idof_obj						id[0]
-#define typeof_obj						id[1]
+#define class_of_obj					id[1]
 #define status_field 					obj_field.default_field.control_byte.byte
 #define obj_event						obj_field.default_field.control_byte.bit.event
 #define obj_state						obj_field.default_field.control_byte.bit.state
 #define obj_value						obj_field.default_field.value
-#define hardware_adress					obj_field.default_field.obj_type.HW_adress
-#define timer_adress					obj_field.default_field.obj_type.TimerID
+#define typeof_obj						obj_field.default_field.obj_type
+#define hardware_adress					obj_field.default_field.obj_swap.HW_adress
+#define timer_adress					obj_field.default_field.obj_swap.TimerID
 #define obj_hardware					obj_field.default_field.control_byte.bit.hardware
 #define obj_data						obj_field.data_field.data
 
@@ -292,9 +294,9 @@ void OBJ_task_init(OBJ_MODEL_PRIORITY *task_priority,int tick_update_rate);
 /*object memory binding*/
 void obj_snap(obj_init_struct* _model_init_,int _model_size_);
 /*create object*/
-OBJ_STRUCT* Obj_Create(int obj_id, int obj_type);
+OBJ_STRUCT* Obj_Create(int obj_id, int obj_class, int obj_type);
 /*create hardware object, return pointer to obj */
-OBJ_STRUCT* HWObj_Create(int obj_id, int obj_type,int hwobj);
+OBJ_STRUCT* HWObj_Create(int obj_id, int obj_class,int hwobj);
 /* create timer */
 OBJ_STRUCT* Timer_Create(int obj_id, int obj_type,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*));
 /*object event*/

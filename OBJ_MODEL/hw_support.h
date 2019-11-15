@@ -27,13 +27,13 @@
 	#error "define number of ADC"
 #endif
 
-
+#define input_bit_mask	0x01	
 /*-----------------------------------------------*/
 void obj_hw_state(OBJ_STRUCT *obj,uint8_t input);
 void obj_hw_value(OBJ_STRUCT *obj,uint16_t value);
 
 void obj_adc_driver(uint16_t* data);
-void obj_input_driver(uint8_t *registr,int num_of_inputs);
+void obj_input_driver(uint8_t *registr,int num_of_inputs,int reg_size,OBJ_HW input);
 /*-----------------------------------------------*/
 
 /*-----------------------------------------------*/
