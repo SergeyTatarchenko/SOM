@@ -307,6 +307,8 @@ void OBJ_SetState(int obj_id,int state);
 void set_all_obj_off(void);
 /* FAST!!! update all obj */
 void FAST_Upd_All_OBJ_USART(void);
+/*usart obj array transmit*/
+void OBJ_transmit_usart(int *array_pointer,int array_size);
 /*receive object data from message*/
 void Rx_OBJ_Data(USART_FRAME *mes);
 /*check control sum of receive data*/

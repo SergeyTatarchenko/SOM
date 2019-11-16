@@ -276,6 +276,52 @@ void FAST_Upd_All_OBJ_USART(void){
 }
 #endif
 
+/*usart transmit array for special obj array */
+void OBJ_transmit_usart(int *array_pointer,int array_size)
+{
+	/*usart frame for memcpy to USART_DATA area */	
+	USART_FRAME object_frame;
+	/*pointer to USART_DATA area */
+	USART_FRAME *usart_memory_pointer;
+	/**/
+	uint8_t *pointer;
+	uint16_t _CRC_ = 0;
+	int obj_counter = 0;
+	/**/
+	usart_memory_pointer =(USART_FRAME*)USART_DATA;		
+	/*fill ID and NETWORK*/
+	object_frame.d_struct.id_netw = ID_NETWORK;
+	object_frame.d_struct.id_modul = ID_DEVICE;
+	object_frame.d_struct.start_seq[0] = (uint8_t)START_BYTE_0;
+	object_frame.d_struct.start_seq[1] = (uint8_t)START_BYTE_1;
+	object_frame.d_struct.stop_seq = (uint8_t)STOP_BYTE;
+	/*fill object field*/
+	pointer = (uint8_t*)&object_frame;
+	pointer += (sizeof(object_frame.d_struct.id_netw) + sizeof(object_frame.d_struct.id_modul)
+			+ sizeof(object_frame.d_struct.start_seq));
+	/*fill array of USART obj*/
+	for(int counter = 0; counter < array_size; counter ++ )
+	{
+		_CRC_ = 0;	
+		memcpy(pointer,(uint8_t*)(this_obj(array_pointer[counter])),sizeof(OBJ_STRUCT));
+		/*fill CRC field*/
+		for(int i = 0 + LEN_START; i < LEN_USART_MSG_OBJ - (LEN_CRC + LEN_STOP); i++)
+		{
+			_CRC_ += object_frame.byte[i];
+		}
+		object_frame.d_struct.crc = _CRC_;
+		/*copy object frame to memory*/
+		memcpy(usart_memory_pointer,&object_frame,sizeof(USART_FRAME));
+		usart_memory_pointer++;
+		obj_counter++;
+	}
+	#if RTOS_USAGE == TRUE
+	/*mutex return in dma transfer complete interrupt*/
+	xSemaphoreTake(xMutex_USART_BUSY,portMAX_DELAY);
+	#endif
+	send_usart_message(USART_DATA,sizeof(USART_FRAME)*obj_counter);	// transfer data to usart
+}
+
 /*create CAN message with extended ID, return message*/
 CAN_OBJ_FRAME can_obj_create_message (int obj_id)
 {
