@@ -10,8 +10,6 @@
 #include "stdint.h"
 #include "string.h"
 /*-----------------------------------------------*/
-#define NSD			0			// not used option	
-/*-----------------------------------------------*/
 /*------------object description-----------------*/
 /*-----------------------------------------------*/
 #define LEN_START	2
@@ -26,51 +24,124 @@
 #define	LEN_USART_MSG_OBJ		(LEN_START + LEN_NETW + LEN_ID + LEN_INDEX + LEN_DATA + LEN_CRC + LEN_STOP)
 /*-----------------------------------------------*/
 
-/* enums to describe types and priorities of objects*/
+/* enums to describe types and priorities of objects                    */
 typedef enum{
-	
-	/*status without control, low priority*/
-	IND_obj_SWC = 1,
-	/*control without control, medium priority*/
-	IND_obj_CWS = 2,
-	/*control with status, high priority*/
-	IND_obj_CAS = 3,
-	/*object with extended data field, high priority*/
-	IND_obj_COM = 4
-	
+	IND_obj_SWC = 1,	/*status without control, low priority          */
+	IND_obj_CWS = 2,	/*control without control, medium priority      */
+	IND_obj_CAS = 3,	/*control with status, high priority            */
+	IND_obj_COM = 4		/*object with extended data field, high priority*/
 }OBJECT_CLASS;
-
+/*----------------------------------------------------------------------*/
 typedef enum{
-	/*software object, default object*/	
-	obj_soft =  0,
-	/*hardware object, use special hanlder*/
-	obj_hard  = 1,
-	/*software timer (with RTOS_USAGE only)*/
-	obj_timer = 2,
-	/*info object,use extended data field, contains text*/
-	obj_text =  3
+	obj_soft =  0,	/*software object, default object                   */	
+	obj_hard  = 1,	/*hardware object, use special hanlder              */
+	obj_timer = 2,	/*software timer (with RTOS_USAGE only)             */
+	obj_text =  3	/*info object,use extended data field, contains text*/
 }OBJECT_TYPE;
-
+/*----------------------------------------------------------------------*/
 typedef struct{
-	
-	int system_priority;
-	int tx_priority;
-	int rx_priority;
-	int user_priority;
-	
-	unsigned short stack_tx_rx;
-	unsigned short stack_user;
-	int tick_update_rate;
-
+	uint8_t system_priority;	/*system layer tasks                    */
+	uint8_t tx_priority;		/*transmit data tasks                   */
+	uint8_t rx_priority;		/*receive data tasks                    */
+	uint8_t user_priority;		/*user tasks                            */
+	uint_least16_t stack_tx_rx;	/*stack size for data transmit/receive  */
+	uint_least16_t stack_user;	/*stack for user layer tasks and threads*/
+	uint8_t tick_update_rate;	/*object model tick update rate         */
 }OBJ_MODEL_PRIORITY;
-/*-----------------------------------------------
-*********OBJECT STRUCTURE DESCRIPTION***********
------------------------------------------------*/
+/*------------------------------------------------------------------------
+**********************OBJECT STRUCTURE DESCRIPTION************************
+------------------------------------------------------------------------*/
+#pragma pack(push,1)
+typedef struct{
+	uint8_t object_id;		/*object id in memory space                 */
+	uint8_t object_class;	/*object class and priority                 */
+}OBJ_ID_TypeDef;
+#pragma pack(pop)
+/*----------------------------------------------------------------------*/
+#pragma pack(push,1)
+typedef union{
+	uint8_t byte;		/*status field, control and view object state   */
+	/*-------------------default field 8 bit----------------------------*/
+	struct{
+		unsigned bit_0:1;
+		unsigned bit_1:1;
+		unsigned bit_2:1;
+		unsigned bit_3:1;
+		unsigned bit_4:1;
+		unsigned bit_5:1;
+		unsigned bit_6:1;
+		unsigned bit_7:1;		
+	}def;
+	/*-------------------field for soft object(default)-----------------*/
+	struct{
+		unsigned state : 1;	/*state bit, display current object status  */
+		unsigned event : 1; /*event bit setting calls object handler    */
+		unsigned ext   : 1;	/*extended value (0 - default, 1 - extended)*/
+		unsigned rez3  : 1; /*reserve bit (add new features)            */
+		unsigned rez4  : 1; /*reserve bit (add new features)            */
+		unsigned rez5  : 1; /*reserve bit (add new features)            */
+		unsigned rez6  : 1; /*reserve bit (add new features)            */
+		unsigned rez7  : 1; /*reserve bit (add new features)            */
+	}soft;
+	/*----------------field for hardware object-------------------------*/
+	struct {
+		unsigned state : 1; /*                   -//-                   */
+		unsigned event : 1; /*                   -//-                   */
+		unsigned view  : 1; /*indicate current hardware state           */
+		unsigned rez3  : 1; /*reserve bit (add new features)            */
+		unsigned rez4  : 1; /*reserve bit (add new features)            */
+		unsigned rez5  : 1; /*reserve bit (add new features)            */
+		unsigned value : 1; /*enable value update from hw               */
+		unsigned en    : 1; /*state <-> view sync enable                */
+	}hardware;
+}OBJ_STATUS_TypeDef;
+#pragma pack(pop)
+/*----------------------------------------------------------------------*/
+#pragma pack(push,1)
+typedef union{
+	uint8_t soft;			/*use status field soft                     */
+	uint8_t hardware;		/*use status field hardware                 */
+	uint8_t timer;			/*use status field soft                     */
+}OBJ_TYPE_TypeDef;
+#pragma pack(pop)
+/*----------------------------------------------------------------------*/
+#pragma pack(push,1)
+typedef union{
+	uint8_t HW_adress;/*binding to array of hardware objects (255 max)  */
+	uint8_t TimerID;  /*binding to array of software timers  (255 max) */
+}OBJ_BIND_TypeDef;
+#pragma pack(pop)
+/*----------------------------------------------------------------------*/
+typedef union{ 
+	uint32_t value;	  				/*value field, size - 32 bit        */
+	struct{
+		uint16_t reserve;			/*reserve value (add new features)  */
+		uint16_t default_value;		/*default value, size - 16 bit      */	
+	}def;
+	struct{
+		uint32_t extended_value;	/*extended value, size - 32 bit     */
+	}extended_value;
+	struct{
+		uint8_t num_of_pages;		/*text block, max page size - 255   */	
+		uint8_t page_number;		/*text block, current page number   */
+		uint8_t page_content;	    /* info page , size - 16 bit        */				
+	}info_block;
+}OBJ_VALUE_TypeDef;
+/*----------------------------------------------------------------------*/
+typedef struct{
+	OBJ_ID_TypeDef OBJ_ID;				/*           16 bit (2 byte)    */
+	OBJ_STATUS_TypeDef OBJ_STATUS;		/*            8 bit (1 byte)    */
+	OBJ_TYPE_TypeDef OBJ_TYPE;			/*            8 bit (1 byte)    */
+	OBJ_BIND_TypeDef OBJ_BIND;			/*            8 bit (1 byte)    */
+	OBJ_VALUE_TypeDef OBJ_VALUE;		/*           32 bit (4 byte)    */
+}OBJ_STRUCT_TypeDef;
+/*----------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------*/
 #pragma pack(push,1)
 typedef	struct{
-	/* ID 2 byte*/
-	uint8_t id[2];
-	/* Data 8 byte*/
+	/* ID 2 byte, id[0] - object numeration,id[1] - object class        */
+	uint8_t id[2];	
 	union {		
 		/*default obj field*/
 		struct{
@@ -205,6 +276,8 @@ typedef union{
 #define START_BYTE_0	0xAA
 #define START_BYTE_1	0x55
 #define STOP_BYTE		0xFF
+/*-----------------------------------------------*/
+#define NSD			0			// not used option	
 /*---------------------------------------------*/
 #define tick_1ms	1
 #define tick_5ms	5
