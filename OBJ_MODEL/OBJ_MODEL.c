@@ -178,43 +178,37 @@ void OBJ_SetState(int obj_id,int state){
 		obj_handlers[obj_id](this_obj(obj_id));
 	}
 }
-/*do not use this function*/
-void set_all_obj_off(void)
-{
-	for(int i = 0; i < num_of_obj;i++)
-	{
-		if((objDefault+i)->class_of_obj != 0)
-		{
-			obj_state_off(i);
-		}
-	}
-}
-
 /* object event, call object handler and call update function, if event = 1 */
 void OBJ_Event(int obj_id){
-	
-	if(this_obj(obj_id)->class_of_obj != 0)
+	OBJ_STRUCT *obj = this_obj(obj_id); 
+	if(obj->class_of_obj != 0)
 	{
-		if((this_obj(obj_id)->obj_hardware == TRUE)&&(this_obj(obj_id)->typeof_obj == obj_hard))
+		if((obj->obj_hardware == TRUE)&&(obj->typeof_obj == obj_hard))
 		{
-			HWOBJ_Event(obj_id);		
+			HWOBJ_Event(obj_id);
+			return;	
 		}
 		#if OBJECT_TIMER == TRUE
 		/*timer event*/
-		if((this_obj(obj_id)->timer_adress != 0)&&(this_obj(obj_id)->typeof_obj == obj_timer))
+		if((obj->timer_adress != 0)&&(obj->typeof_obj == obj_timer))
 		{
-			xTimerStart(obj_timers[this_obj(obj_id)->timer_adress],0);
+			if(!obj->obj_event)
+			{
+				xTimerStart(obj_timers[this_obj(obj_id)->timer_adress],0);
+	//			obj->obj_event = 1;
+			}
+			return;
 		}
 		#endif
 		/* default soft object*/
 		else
 		{
-			obj_handlers[obj_id](this_obj(obj_id));
+			obj_handlers[obj_id](obj);
 		}
 				/*feedback*/		
-		if(this_obj(obj_id)->obj_event == 1)
+		if(obj->obj_event == 1)
 		{
-			this_obj(obj_id)->obj_event = 0;
+			obj->obj_event = 0;
 		}
 	}	
 }
