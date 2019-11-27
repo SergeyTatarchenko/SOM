@@ -112,6 +112,7 @@ typedef union{
 }OBJ_BIND_TypeDef;
 #pragma pack(pop)
 /*----------------------------------------------------------------------*/
+#pragma pack(push,1)
 typedef union{ 
 	uint32_t value;	  				/*value field, size - 32 bit        */
 	struct{
@@ -127,16 +128,32 @@ typedef union{
 		uint8_t page_content;	    /* info page , size - 16 bit        */				
 	}info_block;
 }OBJ_VALUE_TypeDef;
+#pragma pack(pop)
 /*----------------------------------------------------------------------*/
 typedef struct{
+	/**/
 	OBJ_ID_TypeDef OBJ_ID;				/*           16 bit (2 byte)    */
+	
 	OBJ_STATUS_TypeDef OBJ_STATUS;		/*            8 bit (1 byte)    */
+	
 	OBJ_TYPE_TypeDef OBJ_TYPE;			/*            8 bit (1 byte)    */
+	
 	OBJ_BIND_TypeDef OBJ_BIND;			/*            8 bit (1 byte)    */
+	
 	OBJ_VALUE_TypeDef OBJ_VALUE;		/*           32 bit (4 byte)    */
 }OBJ_STRUCT_TypeDef;
 /*----------------------------------------------------------------------*/
-
+typedef union{
+	uint8_t byte[LEN_USART_MSG_OBJ];	/* usart frame array (17 byte)  */
+	struct{
+		uint8_t start_seq[LEN_START];	/*start */  			
+        uint8_t id_netw;
+        uint8_t id_modul;
+//        OBJ_STRUCT object;
+        uint16_t crc;
+		uint8_t stop_seq;
+    }d_struct;
+}USART_FRAME_TypeDef;
 /*----------------------------------------------------------------------*/
 #pragma pack(push,1)
 typedef	struct{
