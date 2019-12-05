@@ -53,7 +53,85 @@ OBJ_MODEL_PRIORITY task_priority;
 		xQueueHandle usart_receive_buffer;
 	#endif
 #endif
+/*----------------------------------------------------------------------*/
+void obj_model_init( void );
+void obj_bind( OBJ_INIT_TypeDef* _model_init_,int _model_size_ );
+/*----------------------------------------------------------------------*/
+static OBJ_MODEL_CLASS_TypeDef OBJ_MODEL_CLASS;
 
+/*
+obj model init function, fill struct fields, snap handlers,fill hardware 
+and soft timer objects; 
+*/
+void obj_model_init()
+{
+	int i = 0;
+	OBJ_INIT_TypeDef _model_init_[] ={_obj_cofig_};
+	memset(OBJ_MODEL_CLASS.OBJ_AREA.OBJ_MEMORY_AREA,0,sizeof(OBJ_MODEL_CLASS.OBJ_AREA.OBJ_MEMORY_AREA));
+	
+	for(i = 0;i <= num_of_all_obj;i++)
+	{
+		OBJ_MODEL_CLASS.objDefault->OBJ_ID.object_id = i;
+		OBJ_MODEL_CLASS.OBJ_HANDLERS[i] = (void(*)(void*))Dummy_Handler;
+	}
+	#ifdef USE_HWOBJ
+	for(i = 0;i <= NUM_OF_HWOBJ ; i++)
+	{
+		OBJ_MODEL_CLASS.HW_OBJ[i] = OBJ_MODEL_CLASS.objDefault;	
+	}
+	#endif
+	#ifdef USE_SERIAL_PORT
+	memset(OBJ_MODEL_CLASS.USART_DATA,0,sizeof(USART_FRAME_TypeDef)*num_of_all_obj);
+	#endif
+	
+}
+/* 
+object create and handler mapping function
+*/
+void obj_bind(OBJ_INIT_TypeDef* _model_init_,int _model_size_)
+{
+	int i = 0;
+	uint8_t obj_quantity = _model_size_/sizeof(OBJ_INIT_TypeDef);
+	
+	for(i = 0 ; i < obj_quantity ; i++)
+	{	
+		/*default soft obj create*/
+		
+		#ifdef USE_HWOBJ
+		
+		#endif
+		#ifdef USE_TIMERS
+		
+		#endif
+	
+		/*handlers swap*/
+		if(_model_init_[i].handler_pointer!= NSD)
+		{
+			OBJ_MODEL_CLASS.OBJ_HANDLERS[_model_init_[i].id] = (void(*)(void*))_model_init_[i].handler_pointer;
+		}
+	}
+}
+/*
+	create object function
+*/
+
+void soft_obj_create(int obj_id, int obj_class, int obj_type)
+{
+//	OBJ_STRUCT* obj;
+//	if(obj_id > num_of_all_obj)
+//	{
+//		return obj;	
+//	}
+//	else
+//	{
+//		obj = objDefault + obj_id;
+//		obj->id[1] = obj_class;
+//		obj->typeof_obj = obj_type;
+//		return obj;
+//	}
+}
+
+/*----------------------------------------------------------------------*/
 /*-----------------------------------------------*/
 
 /*init obj model*/

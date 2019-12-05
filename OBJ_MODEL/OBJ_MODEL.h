@@ -283,6 +283,20 @@ typedef struct{
 	#endif
 #endif
 /*----------------------------------------------------------------------*/
+typedef union{
+	uint8_t byte[LEN_USART_MSG_OBJ];	/* usart frame array (17 byte)  */
+	struct{
+		uint8_t start_seq[LEN_START];	        /*start 16 bit (2 byte) */  			
+        uint8_t id_netw;		/*current object network 8 bit (1 bite) */
+        uint8_t id_modul; /*current mudule id in network 8 bit (1 bite) */
+		OBJ_ID_TypeDef OBJ_ID;						 /* 16 bit (2 byte) */
+		SYNC_TypeDef OBJ_SYNC;						 /* 32 bit (4 byte) */
+		OBJ_VALUE_TypeDef OBJ_VALUE;	             /* 32 bit (4 byte) */
+        uint16_t crc;		/*check sum for usart frame 16 bit (2 byte) */
+		uint8_t stop_seq;                         /*stop 8 bit (1 byte) */
+    }d_struct;
+}USART_FRAME_TypeDef;
+/*----------------------------------------------------------------------*/
 typedef struct {
 	OBJ_STRUCT_TypeDef *objDefault;		/*pointer to the beginning 
 										  of the object model			*/
@@ -301,29 +315,51 @@ typedef struct {
 	/*array of pointers to RTOS software timers*/
 	TimerHandle_t obj_timers[NUM_OF_TIMER];
 	#endif
+	#ifdef USE_SERIAL_PORT	
+	uint8_t USART_DATA[sizeof(USART_FRAME_TypeDef)*num_of_all_obj];
+	#endif
 }OBJ_MODEL_CLASS_TypeDef;
 /*----------------------------------------------------------------------*/
-typedef union{
-	uint8_t byte[LEN_USART_MSG_OBJ];	/* usart frame array (17 byte)  */
-	struct{
-		uint8_t start_seq[LEN_START];	        /*start 16 bit (2 byte) */  			
-        uint8_t id_netw;		/*current object network 8 bit (1 bite) */
-        uint8_t id_modul; /*current mudule id in network 8 bit (1 bite) */
-		OBJ_ID_TypeDef OBJ_ID;						 /* 16 bit (2 byte) */
-		SYNC_TypeDef OBJ_SYNC;						 /* 32 bit (4 byte) */
-		OBJ_VALUE_TypeDef OBJ_VALUE;	             /* 32 bit (4 byte) */
-        uint16_t crc;		/*check sum for usart frame 16 bit (2 byte) */
-		uint8_t stop_seq;                         /*stop 8 bit (1 byte) */
-    }d_struct;
-}USART_FRAME_TypeDef;
+#pragma pack(push,1)
+typedef struct {
+	uint8_t id;										   /* id (0xFF max) */
+	OBJECT_CLASS obj_class;							/* snap to priority */
+	OBJECT_TYPE obj_type;					         /* obj type config */
+	uint8_t HW_adress;						   /* snap to hardware enum */	
+	uint16_t delay;					   /* obj start delay (timers only) */
+	void (*handler_pointer)(OBJ_STRUCT*);         /* pointer to handler */
+}OBJ_INIT_TypeDef;
+#pragma pack(pop)
 /*----------------------------------------------------------------------*/
 #ifdef NEW_CODEBASE
 
-#define idof_obj				OBJ_ID.object_id
-#define class_of_obj			OBJ_ID.object_class
-#define obj_status				OBJ_STATUS.byte
+/*id macro*/
+#define idof_obj						OBJ_ID.object_id
+#define class_of_obj					OBJ_ID.object_class
 
-#endif
+/*status macro*/
+#define obj_status						OBJ_STATUS.byte
+#define obj_state						OBJ_STATUS.soft.state
+#define obj_event						OBJ_STATUS.soft.event
+#define extended_value					OBJ_STATUS.soft.ext
+
+/*value macro*/
+#define obj_value						OBJ_VALUE.value
+#define obj_def_value					OBJ_VALUE.def.default_value
+#define obj_ext_value					OBJ_VALUE.extended_value.extended_value
+#define obj_text_page_content			OBJ_VALUE.info_block.page_content
+#define obj_text_page_number			OBJ_VALUE.info_block.page_number		
+#define obj_text_num_of_pages			OBJ_VALUE.info_block.page_content
+
+/*bind macro */
+#define obj_type_soft					OBJ_BIND.soft
+#define obj_type_hardware				OBJ_BIND.hardware
+#define obj_type_timer					OBJ_BIND.timer
+
+/*obj access*/
+#define this_obj(_obj)					(OBJ_MODEL_CLASS.objDefault + _obj)
+#define OBJ(obj)						OBJ_MODEL_CLASS.OBJ_AREA.OBJ
+#endif 
 /*----------------------------------------------------------------------*/
 
 /*---------------------------------------------*/
