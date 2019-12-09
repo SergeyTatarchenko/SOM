@@ -359,7 +359,10 @@ typedef struct {
 /*obj access*/
 #define this_obj(_obj)					(OBJ_MODEL_CLASS.objDefault + _obj)
 #define OBJ(obj)						OBJ_MODEL_CLASS.OBJ_AREA.OBJ
-#endif 
+
+/*obj sync*/
+
+#endif
 /*----------------------------------------------------------------------*/
 
 /*---------------------------------------------*/

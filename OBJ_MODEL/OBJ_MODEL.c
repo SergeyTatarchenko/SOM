@@ -57,9 +57,11 @@ OBJ_MODEL_PRIORITY task_priority;
 void obj_model_init( void );
 void obj_bind( OBJ_INIT_TypeDef* _model_init_,int _model_size_ );
 void soft_obj_create( int obj_id, int obj_class );
+void  hardware_obj_create( int obj_id, int obj_class,int hwobj );
+void  timer_obj_create( int obj_id, int obj_class,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*));
+
 /*----------------------------------------------------------------------*/
 static OBJ_MODEL_CLASS_TypeDef OBJ_MODEL_CLASS;
-
 /*
 obj model init function, fill struct fields, snap handlers,fill hardware 
 and soft timer objects; 
@@ -84,7 +86,16 @@ void obj_model_init()
 	#ifdef USE_SERIAL_PORT
 	memset(OBJ_MODEL_CLASS.USART_DATA,0,sizeof(USART_FRAME_TypeDef)*num_of_all_obj);
 	#endif
-	
+	/* object create and handler mapping*/
+	obj_bind(_model_init_,sizeof(_model_init_));
+	num_of_obj = 0;
+	for(int i = 0;i<=num_of_all_obj;i++)
+	{
+		if(OBJ_MODEL_CLASS.OBJ_AREA.OBJ[i].OBJ_ID.object_class != 0)
+		{
+			num_of_obj++;
+		}
+	}
 }
 /* 
 object create and handler mapping function
@@ -96,18 +107,25 @@ void obj_bind(OBJ_INIT_TypeDef* _model_init_,int _model_size_)
 	
 	for(i = 0 ; i < obj_quantity ; i++)
 	{	
-			if(_model_init_[i].obj_type == obj_soft)
+		if(_model_init_[i].obj_type == obj_soft)
 		{
 		/*default soft obj create*/
-		soft_obj_create(_model_init_[i].id,_model_init_[i].obj_class);
+		soft_obj_create( _model_init_[i].id,_model_init_[i].obj_class );
 		}
 		#ifdef USE_HWOBJ
-		
+		if(_model_init_[i].obj_type == obj_hard)
+		{
+		/*hardware obj create, use special weak handler*/
+		 hardware_obj_create(_model_init_[i].id,_model_init_[i].obj_class,_model_init_[i].HW_adress);
+		}
 		#endif
 		#ifdef USE_TIMERS
-		
+		if(_model_init_[i].obj_type == obj_timer)
+		{
+		/*hardware obj create, use special weak handler*/
+		 hardware_obj_create(_model_init_[i].id,_model_init_[i].obj_class,_model_init_[i].HW_adress);
+		}
 		#endif
-	
 		/*handlers swap*/
 		if(_model_init_[i].handler_pointer!= NSD)
 		{
@@ -129,6 +147,44 @@ void soft_obj_create( int obj_id, int obj_class )
 	{
 		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_ID.object_class = obj_class;
 		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_TYPE.soft = obj_soft;
+	}
+}
+
+void  hardware_obj_create( int obj_id, int obj_class,int hwobj )
+{
+	if(obj_id > num_of_all_obj)
+	{
+		return;	
+	}
+	else
+	{
+		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_ID.object_class = obj_class;
+		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_TYPE.hardware = obj_hard;
+		/*snap obj bind field with array of hwobj*/
+		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.HW_adress = hwobj; 
+		OBJ_MODEL_CLASS.HW_OBJ[hwobj] = (OBJ_MODEL_CLASS.objDefault + obj_id);
+		/*enable hardware port*/
+		OBJ_MODEL_CLASS.OBJ_AREA.OBJ->OBJ_STATUS.hardware.en = TRUE;
+	}
+}
+
+void  timer_obj_create( int obj_id, int obj_class,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*))
+{
+	static int num_of_timer = 1;
+	
+	if(obj_id > num_of_all_obj)
+	{
+		return;	
+	}
+	else
+	{
+		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_ID.object_class = obj_class;
+		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_TYPE.timer = obj_timer;
+		/*snap obj bind field with array of timers*/
+		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.TimerID = num_of_timer; 
+		OBJ_MODEL_CLASS.obj_timers[num_of_timer] = xTimerCreate("",delay,FALSE,
+		(void*)&OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.TimerID,(void(*)(void*))handler_pointer);
+		num_of_timer++;	
 	}
 }
 

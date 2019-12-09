@@ -1,36 +1,34 @@
-#ifndef TEST_H_
-#define	TEST_H_
-
+#ifndef DEFAULT_H_
+#define	DEFAULT_H_
+/*------------------------------------------------------------------------
+* File Name          : DEFAULT.h
+* Author             : 
+* Version            : v 1.1.0
+* Description        : default example of model init 
+------------------------------------------------------------------------*/
 #include "OBJ_MODEL.h"
-
-/*-------------------------------------------------*/
+/*----------------------------------------------------------------------*/
 #define	IND_obj_NULL			0x00
 #define	IND_obj_END				0xFF
-
-#define obj_STATUS			  (IND_obj_NULL + 1)	
-
-#define	ID_NETWORK			0x00
-#define	ID_DEVICE			0xFF
-#define ID_REMOTE_CNTRL		0x02
-#define	FLAG_RX_ALL			0xFF
+/*----------------------------------------------------------------------*/
+#define obj_STATUS			  (IND_obj_NULL + 1)
+#define obj_TEST			  (IND_obj_NULL + 2)
+/*----------------------------------------------------------------------*/
+/*
+v 0.6
+1) create object name  example   " #define obj_name	(IND_obj_NULL + x)"
+2) create object init like "obj_index,class,snap,delay,handler in  _obj_cofig_ define	
+*/
 
 /*
-v 0.3
-1) create object name  example   " #define obj_name	(IND_obj_NULL + x)"
-2) create object init like "obj_name_init  obj_index,class,snap,delay,handler	
-3) add 	object init to 	_obj_cofig_	
+----------------------------------------------------------------------------------------------------------;
+           index          |     class        |   type    | hw_snap   |    delay    |   Handler         
+----------------------------------------------------------------------------------------------------------;
 */
-/*-----------------------------------------------------------------------------------------------------------------------\
-           name               |      index          |   class     | type     | hw_snap   |    delay    |   Handler        | 
-\-----------------------------------------------------------------------------------------------------------------------*/ 
-#define _obj_STATUS_init       obj_STATUS           ,IND_obj_CAS  ,obj_soft  ,   NSD     ,  NSD      ,NULL
+#define _obj_config_	\
+{     obj_STATUS          ,IND_obj_CAS       ,obj_soft   ,   NSD     ,  NSD        ,NSD                  }, \
+{     obj_TEST            ,IND_obj_CAS       ,obj_soft   ,   NSD     ,  NSD        ,NSD                  }
 
-
-#define _obj_cofig_	{_obj_STATUS_init}
-					
-
-/*--------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------------------------------*/
 			
-/*-------------------------------------------------*/
-/*obj handlers*/
 #endif
