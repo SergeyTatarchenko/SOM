@@ -315,9 +315,12 @@ typedef struct {
 	/*array of pointers to RTOS software timers*/
 	TimerHandle_t obj_timers[NUM_OF_TIMER];
 	#endif
+	/*array for transmittion with serial port*/
 	#ifdef USE_SERIAL_PORT	
 	uint8_t USART_DATA[sizeof(USART_FRAME_TypeDef)*num_of_all_obj];
 	#endif
+	/*array of pointers to text( max text block size 0xff )*/ 
+	unsigned char *text_blocks[num_of_all_obj];
 }OBJ_MODEL_CLASS_TypeDef;
 /*----------------------------------------------------------------------*/
 #pragma pack(push,1)
@@ -392,6 +395,8 @@ typedef struct {
 #define value_of_obj(obj)				this_obj(obj)->obj_value
 #define obj_set_state(obj,state)		this_obj(obj)->obj_state = state
 #define obj_set_value(obj,state)		this_obj(obj)->obj_value = value
+
+#define obj_event_mask					0x02
 /*---------------------------------------------*/
 #define USART1_DEFAULT_BUF_SIZE 		LEN_USART_MSG_OBJ
 #define USART_STREAM_SIZE				(USART1_DEFAULT_BUF_SIZE*num_of_all_obj)

@@ -57,9 +57,10 @@ OBJ_MODEL_PRIORITY task_priority;
 void obj_model_init( void );
 void obj_bind( OBJ_INIT_TypeDef* _model_init_,int _model_size_ );
 void soft_obj_create( int obj_id, int obj_class );
-void  hardware_obj_create( int obj_id, int obj_class,int hwobj );
-void  timer_obj_create( int obj_id, int obj_class,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*));
-
+void hardware_obj_create( int obj_id, int obj_class,int hwobj );
+void timer_obj_create( int obj_id, int obj_class,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*));
+void obj_model_thread( OBJ_STRUCT_TypeDef *instance );
+void OBJ_event( int obj_id );
 /*----------------------------------------------------------------------*/
 static OBJ_MODEL_CLASS_TypeDef OBJ_MODEL_CLASS;
 /*
@@ -188,6 +189,48 @@ void  timer_obj_create( int obj_id, int obj_class,uint16_t delay,void (*handler_
 	}
 }
 
+void obj_model_thread(OBJ_STRUCT_TypeDef *instance)
+{	
+	/*if event trigger enable call event function */
+	if(instance->OBJ_SYNC.status.byte & obj_event_mask)
+	{
+		
+	}
+}
+/* object event function, result depends from obj type */
+void OBJ_event(int obj_id)
+{
+//	OBJ_STRUCT *obj = this_obj(obj_id); 
+//	if(obj->class_of_obj != 0)
+//	{
+//		if((obj->obj_hardware == TRUE)&&(obj->typeof_obj == obj_hard))
+//		{
+//			HWOBJ_Event(obj_id);
+//		}
+//		#if OBJECT_TIMER == TRUE
+//		/*timer event*/
+//		if((obj->timer_adress != 0)&&(obj->typeof_obj == obj_timer))
+//		{
+//			if(!obj->obj_event)
+//			{
+//				xTimerStart(obj_timers[this_obj(obj_id)->timer_adress],0);
+//	//			obj->obj_event = 1;
+//			}
+//			return;
+//		}
+//		#endif
+//		/* default soft object*/
+//		else
+//		{
+//			obj_handlers[obj_id](obj);
+//		}
+//				/*feedback*/		
+//		if(obj->obj_event == 1)
+//		{
+//			obj->obj_event = 0;
+//		}
+//	}	
+}
 /*----------------------------------------------------------------------*/
 /*-----------------------------------------------*/
 
@@ -321,7 +364,6 @@ void OBJ_Event(int obj_id){
 		if((obj->obj_hardware == TRUE)&&(obj->typeof_obj == obj_hard))
 		{
 			HWOBJ_Event(obj_id);
-			return;	
 		}
 		#if OBJECT_TIMER == TRUE
 		/*timer event*/
