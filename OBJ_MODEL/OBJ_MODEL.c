@@ -59,8 +59,10 @@ void obj_bind( OBJ_INIT_TypeDef* _model_init_,int _model_size_ );
 void soft_obj_create( int obj_id, int obj_class );
 void hardware_obj_create( int obj_id, int obj_class,int hwobj );
 void timer_obj_create( int obj_id, int obj_class,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*));
-void obj_model_thread( OBJ_STRUCT_TypeDef *instance );
+void obj_sync( OBJ_STRUCT_TypeDef *instance );
+void obj_model_thread( void );
 void OBJ_event( int obj_id );
+void all_obj_sync_serial( void );
 /*----------------------------------------------------------------------*/
 static OBJ_MODEL_CLASS_TypeDef OBJ_MODEL_CLASS;
 /*
@@ -169,7 +171,7 @@ void  hardware_obj_create( int obj_id, int obj_class,int hwobj )
 	}
 }
 
-void  timer_obj_create( int obj_id, int obj_class,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*))
+void  timer_obj_create( int obj_id, int obj_class,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*) )
 {
 	static int num_of_timer = 1;
 	
@@ -189,50 +191,115 @@ void  timer_obj_create( int obj_id, int obj_class,uint16_t delay,void (*handler_
 	}
 }
 
-void obj_model_thread(OBJ_STRUCT_TypeDef *instance)
+void obj_model_thread( void )
+{
+	int i = 0;
+	for(i = 1; i < ( num_of_all_obj + 1); i++)
+	{
+		obj_sync(OBJ_MODEL_CLASS.objDefault + i);
+	}
+}
+
+void obj_sync( OBJ_STRUCT_TypeDef *instance )
 {	
 	/*if event trigger enable call event function */
 	if(instance->OBJ_SYNC.status.byte & obj_event_mask)
 	{
-		
+		OBJ_event(instance->OBJ_ID.object_id);	
 	}
 }
+
+
+
 /* object event function, result depends from obj type */
 void OBJ_event(int obj_id)
 {
-//	OBJ_STRUCT *obj = this_obj(obj_id); 
-//	if(obj->class_of_obj != 0)
-//	{
-//		if((obj->obj_hardware == TRUE)&&(obj->typeof_obj == obj_hard))
-//		{
-//			HWOBJ_Event(obj_id);
-//		}
-//		#if OBJECT_TIMER == TRUE
-//		/*timer event*/
-//		if((obj->timer_adress != 0)&&(obj->typeof_obj == obj_timer))
-//		{
-//			if(!obj->obj_event)
-//			{
-//				xTimerStart(obj_timers[this_obj(obj_id)->timer_adress],0);
-//	//			obj->obj_event = 1;
-//			}
-//			return;
-//		}
-//		#endif
-//		/* default soft object*/
-//		else
-//		{
-//			obj_handlers[obj_id](obj);
-//		}
-//				/*feedback*/		
-//		if(obj->obj_event == 1)
-//		{
-//			obj->obj_event = 0;
-//		}
-//	}	
+	if(OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_ID.object_class != 0)
+	{
+		/*trigger reset*/		
+		if(OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_STATUS.soft.event == 1)
+		{
+			OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_STATUS.soft.event = 0;
+		}
+		#ifdef USE_HWOBJ
+		if(OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_TYPE.hardware == obj_hard)
+		{
+			HWOBJ_Event(obj_id);
+		}
+		#endif
+		#ifdef USE_TIMERS
+		if((OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.TimerID != 0)
+		&&(OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_TYPE.timer == obj_timer))
+		{
+			xTimerStart(OBJ_MODEL_CLASS.obj_timers[OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.TimerID],0);
+			return;
+		}
+		#endif
+		/* call obj handler */
+		else
+		{
+			OBJ_MODEL_CLASS.OBJ_HANDLERS[obj_id](OBJ_MODEL_CLASS.objDefault + obj_id);
+		}
+	}	
 }
+
+void all_obj_sync_serial( void )
+{
+	
+	USART_FRAME_TypeDef object_frame;
+	USART_FRAME_TypeDef *usart_memory_pointer;
+	int obj_counter = 0;
+	uint16_t _CRC_ = 0;
+	uint8_t *pointer;
+	
+	/*pointer to memory space of USART frame*/
+	usart_memory_pointer =(USART_FRAME_TypeDef*)OBJ_MODEL_CLASS.USART_DATA;		
+	
+	/*fill ID and NETWORK*/
+	object_frame.d_struct.id_netw = ID_NETWORK;
+	object_frame.d_struct.id_modul = ID_DEVICE;
+	object_frame.d_struct.start_seq[0] = (uint8_t)START_BYTE_0;
+	object_frame.d_struct.start_seq[1] = (uint8_t)START_BYTE_1;
+	object_frame.d_struct.stop_seq = (uint8_t)STOP_BYTE;
+
+	/*fill data field*/
+	for(int counter = 1; counter < num_of_all_obj; counter ++ )
+	{
+		_CRC_ = 0;	
+		if(OBJ_MODEL_CLASS.OBJ_AREA.OBJ[counter].OBJ_ID.object_class == 0)
+		{
+			if(obj_counter > num_of_obj)
+			{
+				break;
+			}
+			else
+			{
+				continue;
+			}
+		}
+		object_frame.d_struct.OBJ_ID = OBJ_MODEL_CLASS.OBJ_AREA.OBJ[counter].OBJ_ID;
+		object_frame.d_struct.OBJ_SYNC = OBJ_MODEL_CLASS.OBJ_AREA.OBJ[counter].OBJ_SYNC;
+		object_frame.d_struct.OBJ_VALUE = OBJ_MODEL_CLASS.OBJ_AREA.OBJ[counter].OBJ_VALUE;
+		
+		/*fill CRC field*/
+		for(int i = 0 + LEN_START; i < LEN_USART_MSG_OBJ - (LEN_CRC + LEN_STOP); i++)
+		{
+			_CRC_ += object_frame.byte[i];
+		}
+		object_frame.d_struct.crc = _CRC_;
+		/*copy object frame to memory*/
+		memcpy(usart_memory_pointer,&object_frame,sizeof(USART_FRAME));
+		usart_memory_pointer++;
+		obj_counter++;
+	}
+//	#if RTOS_USAGE == TRUE
+//	/*mutex return in dma transfer complete interrupt*/
+//	xSemaphoreTake(xMutex_USART_BUSY,portMAX_DELAY);
+//	#endif
+//	send_usart_message(USART_DATA,sizeof(USART_FRAME)*obj_counter);	// transfer data to usart
+}
+
 /*----------------------------------------------------------------------*/
-/*-----------------------------------------------*/
 
 /*init obj model*/
 void OBJ_Init()
