@@ -288,7 +288,7 @@ typedef union{
 	struct{
 		uint8_t start_seq[LEN_START];	        /*start 16 bit (2 byte) */  			
         uint8_t id_netw;		/*current object network 8 bit (1 bite) */
-        uint8_t id_modul; /*current mudule id in network 8 bit (1 bite) */
+        uint8_t id_modul; /*current module id in network 8 bit (1 bite) */
 		OBJ_ID_TypeDef OBJ_ID;						 /* 16 bit (2 byte) */
 		SYNC_TypeDef OBJ_SYNC;						 /* 32 bit (4 byte) */
 		OBJ_VALUE_TypeDef OBJ_VALUE;	             /* 32 bit (4 byte) */
@@ -318,7 +318,11 @@ typedef struct {
 	/*array for transmittion with serial port*/
 	#ifdef USE_SERIAL_PORT	
 	uint8_t USART_DATA[sizeof(USART_FRAME_TypeDef)*num_of_all_obj];
+		#ifdef USE_RTOS
+		xSemaphoreHandle xMutex_USART_BUSY;
+		#endif
 	#endif
+	
 	/*array of pointers to text( max text block size 0xff )*/ 
 	unsigned char *text_blocks[num_of_all_obj];
 }OBJ_MODEL_CLASS_TypeDef;

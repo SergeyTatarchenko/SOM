@@ -153,6 +153,7 @@ void soft_obj_create( int obj_id, int obj_class )
 	}
 }
 
+#ifdef USE_HWOBJ
 void  hardware_obj_create( int obj_id, int obj_class,int hwobj )
 {
 	if(obj_id > num_of_all_obj)
@@ -170,7 +171,9 @@ void  hardware_obj_create( int obj_id, int obj_class,int hwobj )
 		OBJ_MODEL_CLASS.OBJ_AREA.OBJ->OBJ_STATUS.hardware.en = TRUE;
 	}
 }
+#endif
 
+#ifdef USE_TIMERS
 void  timer_obj_create( int obj_id, int obj_class,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*) )
 {
 	static int num_of_timer = 1;
@@ -190,6 +193,7 @@ void  timer_obj_create( int obj_id, int obj_class,uint16_t delay,void (*handler_
 		num_of_timer++;	
 	}
 }
+#endif
 
 void obj_model_thread( void )
 {
@@ -243,6 +247,7 @@ void OBJ_event(int obj_id)
 	}	
 }
 
+#ifdef USE_SERIAl_PORT
 void all_obj_sync_serial( void )
 {
 	
@@ -298,7 +303,7 @@ void all_obj_sync_serial( void )
 //	#endif
 //	send_usart_message(USART_DATA,sizeof(USART_FRAME)*obj_counter);	// transfer data to usart
 }
-
+#endif
 /*----------------------------------------------------------------------*/
 
 /*init obj model*/
@@ -428,9 +433,15 @@ void OBJ_Event(int obj_id){
 	OBJ_STRUCT *obj = this_obj(obj_id); 
 	if(obj->class_of_obj != 0)
 	{
+		/*feedback*/		
+		if(obj->obj_event == 1)
+		{
+			obj->obj_event = 0;
+		}
 		if((obj->obj_hardware == TRUE)&&(obj->typeof_obj == obj_hard))
 		{
 			HWOBJ_Event(obj_id);
+			
 		}
 		#if OBJECT_TIMER == TRUE
 		/*timer event*/
@@ -448,11 +459,6 @@ void OBJ_Event(int obj_id){
 		else
 		{
 			obj_handlers[obj_id](obj);
-		}
-				/*feedback*/		
-		if(obj->obj_event == 1)
-		{
-			obj->obj_event = 0;
 		}
 	}	
 }
