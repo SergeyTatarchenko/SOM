@@ -464,11 +464,6 @@ extern void ((*obj_handlers[num_of_all_obj+1]))(void*);
 #if USART_COM_ENABLE == TRUE	
 	/*pointer to an array of frames in the message for USART*/
 	extern uint8_t USART_DATA[sizeof(USART_FRAME)*num_of_all_obj];
-	/*<old codebase/>*/
-	/* data array for usart obj transfer */
-	extern uint8_t	usart_data_transmit_array[USART1_DEFAULT_BUF_SIZE];
-	extern uint8_t	usart_data_stream[USART_STREAM_SIZE];
-	/*</old codebase>*/
 	/* data array for usart obj receive */
 	extern uint8_t usart_data_receive_array[USART1_DEFAULT_BUF_SIZE];
 	#if RTOS_USAGE == TRUE
