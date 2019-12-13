@@ -51,13 +51,15 @@ OBJ_MODEL_PRIORITY task_priority;
 /*----------------------------------------------------------------------*/
 void obj_model_init( void );
 void obj_bind( OBJ_INIT_TypeDef* _model_init_,int _model_size_ );
-void soft_obj_create( int obj_id, int obj_class );
-void hardware_obj_create( int obj_id, int obj_class,int hwobj );
-void timer_obj_create( int obj_id, int obj_class,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*));
+void obj_soft_create( int obj_id, int obj_class );
+void obj_hardware_create( int obj_id, int obj_class,int hwobj );
+void obj_timer_create( int obj_id, int obj_class,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*) );
 void obj_sync( OBJ_STRUCT_TypeDef *instance );
 void obj_model_thread( void );
-void OBJ_event( int obj_id );
-void all_obj_sync_serial( void );
+void obj_event_fnct( int obj_id );
+
+void sp_all_obj_sync( void );
+void sp_mes_receive( USART_FRAME_TypeDef *mes );
 /*----------------------------------------------------------------------*/
 static OBJ_MODEL_CLASS_TypeDef OBJ_MODEL_CLASS;
 /*
@@ -108,20 +110,20 @@ void obj_bind(OBJ_INIT_TypeDef* _model_init_,int _model_size_)
 		if(_model_init_[i].obj_type == obj_soft)
 		{
 		/*default soft obj create*/
-		soft_obj_create( _model_init_[i].id,_model_init_[i].obj_class );
+		obj_soft_create( _model_init_[i].id,_model_init_[i].obj_class );
 		}
 		#ifdef USE_HWOBJ
 		if(_model_init_[i].obj_type == obj_hard)
 		{
 		/*hardware obj create, use special weak handler*/
-		 hardware_obj_create(_model_init_[i].id,_model_init_[i].obj_class,_model_init_[i].HW_adress);
+		 obj_hardware_create(_model_init_[i].id,_model_init_[i].obj_class,_model_init_[i].HW_adress);
 		}
 		#endif
 		#ifdef USE_TIMERS
 		if(_model_init_[i].obj_type == obj_timer)
 		{
 		/*hardware obj create, use special weak handler*/
-		 hardware_obj_create(_model_init_[i].id,_model_init_[i].obj_class,_model_init_[i].HW_adress);
+		 obj_timer_create(_model_init_[i].id,_model_init_[i].obj_class,_model_init_[i].delay,_model_init_[i].handler_pointer);
 		}
 		#endif
 		/*handlers swap*/
@@ -135,7 +137,7 @@ void obj_bind(OBJ_INIT_TypeDef* _model_init_,int _model_size_)
 	create object function
 */
 
-void soft_obj_create( int obj_id, int obj_class )
+void obj_soft_create( int obj_id, int obj_class )
 {
 	if(obj_id > num_of_all_obj)
 	{
@@ -149,7 +151,7 @@ void soft_obj_create( int obj_id, int obj_class )
 }
 
 #ifdef USE_HWOBJ
-void  hardware_obj_create( int obj_id, int obj_class,int hwobj )
+void  obj_hardware_create( int obj_id, int obj_class,int hwobj )
 {
 	if(obj_id > num_of_all_obj)
 	{
@@ -159,17 +161,15 @@ void  hardware_obj_create( int obj_id, int obj_class,int hwobj )
 	{
 		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_ID.object_class = obj_class;
 		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_TYPE.hardware = obj_hard;
-		/*snap obj bind field with array of hwobj*/
-		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.HW_adress = hwobj; 
+		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.HW_adress = hwobj; 		/*snap obj bind field with array of hwobj*/
 		OBJ_MODEL_CLASS.HW_OBJ[hwobj] = (OBJ_MODEL_CLASS.objDefault + obj_id);
-		/*enable hardware port*/
-		OBJ_MODEL_CLASS.OBJ_AREA.OBJ->OBJ_STATUS.hardware.en = TRUE;
+		OBJ_MODEL_CLASS.OBJ_AREA.OBJ->OBJ_STATUS.hardware.en = TRUE;			/*enable hardware port*/
 	}
 }
 #endif
 
 #ifdef USE_TIMERS
-void  timer_obj_create( int obj_id, int obj_class,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*) )
+void  obj_timer_create( int obj_id, int obj_class,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT*) )
 {
 	static int num_of_timer = 1;
 	
@@ -181,8 +181,7 @@ void  timer_obj_create( int obj_id, int obj_class,uint16_t delay,void (*handler_
 	{
 		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_ID.object_class = obj_class;
 		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_TYPE.timer = obj_timer;
-		/*snap obj bind field with array of timers*/
-		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.TimerID = num_of_timer; 
+		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.TimerID = num_of_timer;	/*snap obj bind field with array of timers*/ 
 		OBJ_MODEL_CLASS.obj_timers[num_of_timer] = xTimerCreate("",delay,FALSE,
 		(void*)&OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.TimerID,(void(*)(void*))handler_pointer);
 		num_of_timer++;	
@@ -204,14 +203,15 @@ void obj_sync( OBJ_STRUCT_TypeDef *instance )
 	/*if event trigger enable call event function */
 	if(instance->OBJ_SYNC.status.byte & obj_event_mask)
 	{
-		OBJ_event(instance->OBJ_ID.object_id);	
+		
+		obj_event_fnct(instance->OBJ_ID.object_id);	
 	}
 }
 
 
 
 /* object event function, result depends from obj type */
-void OBJ_event(int obj_id)
+void obj_event_fnct( int obj_id )
 {
 	if(OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_ID.object_class != 0)
 	{
@@ -242,8 +242,48 @@ void OBJ_event(int obj_id)
 	}	
 }
 
+void sp_mes_receive( USART_FRAME_TypeDef *mes )
+{
+	int i = 0;
+	uint8_t permission = 0;
+	uint16_t _CRC = 0;
+	OBJ_STRUCT_TypeDef *obj;
+	
+	for(i = LEN_START; i < LEN_USART_MSG_OBJ - (LEN_CRC + LEN_STOP); i++)
+	{
+		_CRC += mes->byte[i];
+	}
+	if(_CRC != mes->d_struct.crc)
+	{
+		return;		/*error crc do not match*/
+
+	}
+	
+	permission  = !(mes->d_struct.OBJ_ID.object_class ^ IND_obj_CWS);
+	permission |= !(mes->d_struct.OBJ_ID.object_class ^ IND_obj_CAS);
+	permission &= !(mes->d_struct.OBJ_ID.object_class ^ obj->OBJ_ID.object_class); /*types are the same*/
+
+	//	/*extended data field*/
+//	if(mes->d_struct.object.class_of_obj == IND_obj_COM)
+//	{	
+//		obj->dWordL = mes->d_struct.object.dWordL;
+//		obj->dWordH = mes->d_struct.object.dWordH;	
+//		OBJ_Event(mes->d_struct.object.idof_obj);
+//		return;		
+//	}
+	
+	if(permission)
+	{
+		if(mes->d_struct.OBJ_SYNC.status.byte & obj_event_mask)
+		{
+		obj->OBJ_SYNC = mes->d_struct.OBJ_SYNC;	
+		obj->OBJ_VALUE = mes->d_struct.OBJ_VALUE;
+		}	
+	}	
+}
+
 #ifdef USE_SERIAl_PORT
-void all_obj_sync_serial( void )
+void sp_all_obj_sync( void )
 {
 	
 	USART_FRAME_TypeDef object_frame;
@@ -292,11 +332,11 @@ void all_obj_sync_serial( void )
 		usart_memory_pointer++;
 		obj_counter++;
 	}
-//	#if RTOS_USAGE == TRUE
-//	/*mutex return in dma transfer complete interrupt*/
-//	xSemaphoreTake(xMutex_USART_BUSY,portMAX_DELAY);
-//	#endif
-//	send_usart_message(USART_DATA,sizeof(USART_FRAME)*obj_counter);	// transfer data to usart
+	#if RTOS_USAGE == TRUE
+	/*mutex return in dma transfer complete interrupt*/
+	xSemaphoreTake(xMutex_USART_BUSY,portMAX_DELAY);
+	#endif
+	send_usart_message(USART_DATA,sizeof(USART_FRAME)*obj_counter);	// transfer data to usart
 }
 #endif
 /*----------------------------------------------------------------------*/
