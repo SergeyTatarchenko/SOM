@@ -200,26 +200,21 @@ void obj_model_thread( void )
 
 void obj_sync( OBJ_STRUCT_TypeDef *instance )
 {	
-	/*if event trigger enable call event function */
-	if(instance->OBJ_SYNC.status.byte & obj_event_mask)
-	{
-		
+	if(instance->OBJ_SYNC.status.byte & obj_event_mask)	/*if event trigger enable call event function */
+	{	
+		if(instance->OBJ_STATUS.soft.event == 1)	/*trigger reset*/
+		{
+			instance->OBJ_STATUS.soft.event = 0;
+		}
 		obj_event_fnct(instance->OBJ_ID.object_id);	
 	}
 }
-
-
 
 /* object event function, result depends from obj type */
 void obj_event_fnct( int obj_id )
 {
 	if(OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_ID.object_class != 0)
 	{
-		/*trigger reset*/		
-		if(OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_STATUS.soft.event == 1)
-		{
-			OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_STATUS.soft.event = 0;
-		}
 		#ifdef USE_HWOBJ
 		if(OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_TYPE.hardware == obj_hard)
 		{
