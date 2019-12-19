@@ -1,43 +1,32 @@
-/*************************************************
+/************************************************************************
 * File Name          : OBJ_MODEL.c
 * Author             : Tatarchenko S.
 * Version            : v 1.6
 * Description        : Simple Obj Model 
-*************************************************/
+*************************************************************************/
 #include "OBJ_MODEL.h"
-/*----------- global variables-------------------*/
-
-/*structure with current board mode*/
+/*---------------------------------------------------------------------
+*************************COMMON VARIABLES******************************
+----------------------------------------------------------------------*/
+//<old_codebase/>
 BOARD_STATE	board_state;
-
+//</old_codebase>
 /*
-	number of objects created;
-	the variable must not exceed the value of num_of_all_obj !!!
+number of objects created; the variable must not exceed the value of num_of_all_obj !!!
 */
 uint32_t num_of_obj;
 
-#if RTOS_USAGE == TRUE
-/*tasks init struct*/
-OBJ_MODEL_PRIORITY task_priority;
-#endif
-#if OBJECT_TIMER == TRUE
-	TimerHandle_t obj_timers[NUM_OF_TIMER];
+#ifdef USE_RTOS
+OBJ_MODEL_MEM_ALLOCATION_TypeDef OBJ_MODEL_MEM_ALLOCATION; /*tasks init struct*/
 #endif
 
-#ifdef USART_COM_ENABLE
-	/* data array for usart obj receive */
-	uint8_t usart_data_receive_array[USART1_DEFAULT_BUF_SIZE];
-	/*usart data byte counter */
-	uint8_t usart_irq_counter = 0;
-	#if RTOS_USAGE == TRUE
-		/*mutex  to perform currect usart transmit */
-		xSemaphoreHandle xMutex_USART_BUSY;
-		/*queue of messages from usart module*/
-		xQueueHandle usart_receive_buffer;
-	#endif
+#ifdef USE_SERIAL_PORT
+xSemaphoreHandle xMutex_USART_BUSY;
+xQueueHandle usart_receive_buffer;
 #endif
 
 OBJ_MODEL_CLASS_TypeDef OBJ_MODEL_CLASS;
+/*----------------------------------------------------------------------*/
 /*
 obj model init function, fill struct fields, snap handlers,fill hardware 
 and soft timer objects; 
@@ -73,6 +62,7 @@ void obj_model_init()
 		}
 	}
 }
+
 /* 
 object create and handler mapping function
 */
@@ -109,10 +99,10 @@ void obj_bind(OBJ_INIT_TypeDef* _model_init_,int _model_size_)
 		}
 	}
 }
+
 /*
 	create object function
 */
-
 void obj_soft_create( int obj_id, int obj_class )
 {
 	if(obj_id > num_of_all_obj)
@@ -309,20 +299,18 @@ void sp_all_obj_sync( void )
 #endif
 /*----------------------------------------------------------------------*/
 
-/************************task creation functions*************************/
-
 /*task creation function for object model*/
-void OBJ_task_init(OBJ_MODEL_PRIORITY *task_priority,int tick_update_rate)
+void OBJ_task_init(OBJ_MODEL_MEM_ALLOCATION_TypeDef *mem_stack,int tick_update_rate)
 {
 	obj_model_init();
 	obj_model_setup();
-#if RTOS_USAGE == TRUE	
-	#if USART_COM_ENABLE == TRUE
+#ifdef USE_RTOS
+	#ifdef USE_SERIAL_PORT
 		xMutex_USART_BUSY = xSemaphoreCreateMutex();
 		usart_receive_buffer = xQueueCreate(MES_BUF_SIZE,sizeof(USART_FRAME_TypeDef));	
 	#endif
-	xTaskCreate(_task__OBJ_model_thread,"main loop",task_priority->stack_user, NULL,task_priority->user_priority, NULL );
-	xTaskCreate(_task__OBJ_data_rx,"rx handler",task_priority->stack_tx_rx, NULL,task_priority->rx_priority, NULL );
+	xTaskCreate(_task__OBJ_model_thread,"main loop",mem_stack->stack_user, NULL,mem_stack->user_priority, NULL );
+	xTaskCreate(_task__OBJ_data_rx,"rx handler",mem_stack->stack_tx_rx, NULL,mem_stack->rx_priority, NULL );
 #endif	
 }
 
@@ -347,20 +335,20 @@ void _task__OBJ_model_thread (void *pvParameters){
 
 /*receive thread of the object model*/
 void _task__OBJ_data_rx (void *pvParameters){
-
-#if USART_COM_ENABLE == TRUE
+#ifdef USE_SERIAL_PORT
 	USART_FRAME_TypeDef buf_usart;
 #endif
-	
 	for(;;)
 	{
-#if USART_COM_ENABLE == TRUE
+		#ifdef USE_SERIAL_PORT
 		xQueueReceive(usart_receive_buffer,&buf_usart,portMAX_DELAY);
 		sp_mes_receive(&buf_usart);
-#endif
-	}	
+		#endif
+	}
 }
-/************************weak function*************************/
+/*---------------------------------------------------------------------
+************************WEAK FUNCTIONS*********************************
+----------------------------------------------------------------------*/
 /*usart message*/
 void __attribute__((weak)) send_usart_message(uint8_t *message,uint32_t buf_size)
 {
@@ -369,11 +357,12 @@ void __attribute__((weak)) send_usart_message(uint8_t *message,uint32_t buf_size
 /*obj model setup, config usart update rate, config object initial state */
 void __attribute__((weak)) obj_model_setup(void)
 {
-
+	
 }
 /*obj model loop*/
 void __attribute__((weak)) obj_model_task(int tick)
 {
+	
 }
 /*empty handler*/
 void __attribute__((weak)) Dummy_Handler(OBJ_STRUCT_TypeDef *obj)
@@ -382,6 +371,7 @@ void __attribute__((weak)) Dummy_Handler(OBJ_STRUCT_TypeDef *obj)
 
 void __attribute__((weak)) HWOBJ_Event(int obj_id) 
 {
+	
 }
 
 

@@ -14,10 +14,10 @@
 /*----------------------------------------------------------------------*/
 /* enums to describe types and priorities of objects                    */
 typedef enum{
-	IND_obj_SWC = 1,	/*status without control, low priority          */
-	IND_obj_CWS = 2,	/*control without control, medium priority      */
-	IND_obj_CAS = 3,	/*control with status, high priority            */
-	IND_obj_COM = 4		/*object with extended data field, high priority*/
+    IND_obj_SWC = 1,    /*status without control, low priority          */
+    IND_obj_CWS = 2,	/*control without control, medium priority      */
+    IND_obj_CAS = 3,	/*control with status, high priority            */
+    IND_obj_COM = 4		/*object with extended data field, high priority*/
 }OBJECT_CLASS;
 /*----------------------------------------------------------------------*/
 typedef enum{
@@ -35,7 +35,7 @@ typedef struct{
 	uint_least16_t stack_tx_rx;	/*stack size for data transmit/receive  */
 	uint_least16_t stack_user;	/*stack for user layer tasks and threads*/
 	uint8_t tick_update_rate;	/*object model tick update rate         */
-}OBJ_MODEL_PRIORITY;
+}OBJ_MODEL_MEM_ALLOCATION_TypeDef;
 /*----------------------------------------------------------------------*/
 #pragma pack(push,1)
 typedef union{
@@ -175,9 +175,9 @@ typedef struct{
 #define LEN_DATA	8
 #define	LEN_CRC		2
 #define	LEN_STOP	1
-#define LEN_HEAD_SIZE			(LEN_START + LEN_NETW + LEN_ID )
-#define LEN_OBJ					(LEN_INDEX + LEN_DATA + LEN_CRC)
-#define	LEN_USART_MSG_OBJ		(LEN_HEAD_SIZE + LEN_OBJ + LEN_STOP)
+#define LEN_HEAD_SIZE			(LEN_START +     LEN_NETW + LEN_ID   )
+#define LEN_OBJ					(LEN_INDEX +     LEN_DATA + LEN_CRC  )
+#define	LEN_USART_MSG_OBJ		(LEN_HEAD_SIZE + LEN_OBJ  + LEN_STOP )
 /*----------------------------------------------------------------------*/
 #pragma pack(push,1)
 typedef union{
@@ -187,7 +187,7 @@ typedef union{
         uint8_t id_netw;		/*current object network 8 bit (1 bite) */
         uint8_t id_modul; /*current module id in network 8 bit (1 bite) */
 		OBJ_ID_TypeDef OBJ_ID;						 /* 16 bit (2 byte) */
-		SYNC_TypeDef OBJ_SYNC;						 /* 24 bit (4 byte) */
+		SYNC_TypeDef OBJ_SYNC;						 /* 24 bit (3 byte) */
 		OBJ_TYPE_TypeDef OBJ_TYPE;					  /* 8 bit (1 byte) */
 		OBJ_VALUE_TypeDef OBJ_VALUE;	             /* 32 bit (4 byte) */
         uint16_t crc;		/*check sum for usart frame 16 bit (2 byte) */
@@ -235,7 +235,6 @@ typedef struct {
 }OBJ_INIT_TypeDef;
 #pragma pack(pop)
 /*----------------------------------------------------------------------*/
-
 /*obj memory usage, use max value for default*/
 #ifndef num_of_all_obj
 	#define num_of_all_obj MAX_OBJ
@@ -251,48 +250,38 @@ typedef struct {
 	#endif
 #endif
 /*----------------------------------------------------------------------*/
-/*id macro*/
-#define idof_obj						OBJ_ID.object_id
+#define idof_obj						OBJ_ID.object_id      /*id macro*/
 #define class_of_obj					OBJ_ID.object_class
-
 /*status macro*/
 #define obj_status						OBJ_STATUS.byte
 #define obj_state						OBJ_STATUS.soft.state
 #define obj_event						OBJ_STATUS.soft.event
 #define extended_value					OBJ_STATUS.soft.ext
-
-/*value macro*/
-#define obj_value						OBJ_VALUE.value
+#define obj_value						OBJ_VALUE.value    /*value macro*/
 #define obj_def_value					OBJ_VALUE.def.default_value
 #define obj_ext_value					OBJ_VALUE.extended_value.extended_value
 #define obj_text_page_content			OBJ_VALUE.info_block.page_content
-#define obj_text_page_number			OBJ_VALUE.info_block.page_number		
+#define obj_text_page_number			OBJ_VALUE.info_block.page_number
 #define obj_text_num_of_pages			OBJ_VALUE.info_block.page_content
-
-/*bind macro */
-#define obj_type_soft					OBJ_BIND.soft
+#define obj_type_soft					OBJ_BIND.soft      /*bind macro */
 #define obj_type_hardware				OBJ_BIND.hardware
 #define obj_type_timer					OBJ_BIND.timer
-
-/*obj access*/
+/*----------------------------------------------------------------------*/
 #define this_obj(_obj)					(OBJ_MODEL_CLASS.objDefault + _obj)
-#define OBJ(obj)						OBJ_MODEL_CLASS.OBJ_AREA.OBJ
-
-/*obj sync*/
-
+#define OBJ(obj)						OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj]
 #define this_obj_state(obj_id)			this_obj(obj_id)->obj_state
 #define obj_state_on(obj_id)			this_obj(obj_id)->obj_state = TRUE
 #define obj_state_off(obj_id)			this_obj(obj_id)->obj_state = FALSE
 #define state_of_obj(obj)				this_obj(obj)->obj_state
 #define value_of_obj(obj)				this_obj(obj)->obj_def_value
+/*----------------------------------------------------------------------*/
 #define obj_set_state(obj,state)		this_obj(obj)->obj_state = state
 #define obj_set_value(obj,state)		this_obj(obj)->obj_value = value
-
-#define OBJ_Event(id)	OBJ_MODEL_CLASS.OBJ_AREA.OBJ[id].OBJ_SYNC.status.byte |= obj_event_mask
-
 /*----------------------------------------------------------------------*/
-
-/*common functions*/
+#define SET_OBJ_EVENT_TRIGGER(obj_id) OBJ(obj_id).OBJ_SYNC.status.byte |= obj_event_mask
+#define OBJ_Event(id)	SET_OBJ_EVENT_TRIGGER(id)
+/*----------------------------------------------------------------------*/
+/*common functions prototypes*/
 void obj_model_init( void );
 void obj_bind( OBJ_INIT_TypeDef* _model_init_,int _model_size_ );
 void obj_soft_create( int obj_id, int obj_class );
@@ -301,29 +290,21 @@ void obj_timer_create( int obj_id, int obj_class,uint16_t delay,void (*handler_p
 void obj_sync( OBJ_STRUCT_TypeDef *instance );
 void obj_model_thread( void );
 void obj_event_fnct( int obj_id );
-
-/*serial port functions*/
+/*----------------------------------------------------------------------*/
+/*serial port functions prototypes*/
 void sp_all_obj_sync( void );
 void sp_mes_receive( USART_FRAME_TypeDef *mes );
 
-
-extern OBJ_MODEL_CLASS_TypeDef OBJ_MODEL_CLASS;
 /*----------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------*/
-
-
 #define obj_event_mask					0x02
 #define obj_status_mask					0x01
-/*---------------------------------------------*/
-#define USART1_DEFAULT_BUF_SIZE 		LEN_USART_MSG_OBJ
-
+/*----------------------------------------------------------------------*/
 #define START_BYTE_0	0xAA
 #define START_BYTE_1	0x55
 #define STOP_BYTE		0xFF
-/*-----------------------------------------------*/
-#define NSD			0			// not used option	
-/*---------------------------------------------*/
+/*----------------------------------------------------------------------*/
+#define NSD 0           // define for not used options in OBJ_INIT struct
+/*----------------------------------------------------------------------*/
 #define tick_1ms	1
 #define tick_5ms	5
 #define tick_10ms	10
@@ -333,81 +314,53 @@ extern OBJ_MODEL_CLASS_TypeDef OBJ_MODEL_CLASS;
 #define tick_250ms	250
 #define tick_500ms	500
 #define tick_1s		1000
-/*-----------------------------------------------*/
-#define can_obj_mask	0x000000FF
-#define can_id_mask		0x00003F00
-#define can_net_mask	0x0000C000
-/*-----------------------------------------------*/
+/*----------------------------------------------------------------------*/
+//<old codebase/>
 #define board_power	board_state.bit.power
-/*-----------------------------------------------*/
+extern BOARD_STATE	board_state;
+//</old codebase>
+/*----------------------------------------------------------------------*/
 #define TRUE    1
 #define FALSE   0
-/*-----------------------------------------------
-**************model operation mode**************
------------------------------------------------*/
+/*------------------------------------------------------------------------
+*************************model operation mode*****************************
+------------------------------------------------------------------------*/
 #define APP_MODE	1
 #define BOOT_MODE	2
-
+/*----------------------------------------------------------------------*/
 #ifdef USE_RTOS
 	#include "RTOS.h"
 #endif
-/*-----------------------------------------------
-***************COMMON VARIABLES******************
------------------------------------------------*/
-extern BOARD_STATE	board_state;
+/*---------------------------------------------------------------------
+*************************COMMON VARIABLES******************************
+----------------------------------------------------------------------*/
+extern OBJ_MODEL_CLASS_TypeDef OBJ_MODEL_CLASS;
 extern uint32_t num_of_obj;
+extern OBJ_MODEL_MEM_ALLOCATION_TypeDef OBJ_MODEL_MEM_ALLOCATION;
 
-#if RTOS_USAGE == TRUE
-	extern OBJ_MODEL_PRIORITY task_priority;
+#ifdef USE_SERIAL_PORT
+extern xSemaphoreHandle xMutex_USART_BUSY;
+extern xQueueHandle usart_receive_buffer;
 #endif
-
-
-#if USART_COM_ENABLE == TRUE	
-	/* data array for usart obj receive */
-	extern uint8_t usart_data_receive_array[USART1_DEFAULT_BUF_SIZE];
-	#if RTOS_USAGE == TRUE
-		/*mutex  to perform currect usart transmit */
-		extern xSemaphoreHandle xMutex_USART_BUSY;
-		/*queue of messages from usart module*/
-		extern xQueueHandle usart_receive_buffer;
-	#endif
-	/*usart data byte counter */
-	extern uint8_t usart_irq_counter;
-#endif
-
-#if CAN_COM_ENABLE == TRUE
-	extern xQueueHandle can_receive_buffer;
-	extern xQueueHandle can_transmit_buffer;
-	CAN_OBJ_FRAME can_obj_create_message (int obj_id);
-	uint32_t can_queue_obj_fill(CAN_OBJ_FRAME message);
-	void can_obj_send_routine(uint32_t tick);
-#endif
-
-/*-----------------------------------------------
-*********OBJ MODEL FUNCTION PROTOTYPES***********
------------------------------------------------*/
+/*---------------------------------------------------------------------
+****************OBJ MODEL FUNCTION PROTOTYPES**************************
+----------------------------------------------------------------------*/
 /*init obj model tasks*/
-void OBJ_task_init(OBJ_MODEL_PRIORITY *task_priority,int tick_update_rate);
-
-/*RTOS tasks*/
+void OBJ_task_init(OBJ_MODEL_MEM_ALLOCATION_TypeDef *mem_stack,int tick_update_rate);
+/*RTOS tasks (used onle with USE_RTOS define)*/
 void _task__OBJ_model_thread (void *pvParameters);
 void _task__OBJ_data_rx (void *pvParameters);
-/*-----------------------------------------------
-****DEVICE SPECIFIC COMMUNICATION FUNCTIONS*****
------------------------------------------------*/
-/*usart transfer , board specific */
+/*---------------------------------------------------------------------
+****************SPECIFIC COMMUNICATION FUNCTIONS***********************
+----------------------------------------------------------------------*/
 void send_usart_message(uint8_t *message,uint32_t buf_size);
-/*-----------------------------------------------
-***********REDEFINABLE FUNCTIONS*****************
------------------------------------------------*/
-/*hardware event handler, board special*/
-void HWOBJ_Event(int obj_id);
-/*empty handler (can be changed)*/
-void Dummy_Handler(OBJ_STRUCT_TypeDef *obj);
-/*obj model setup, config usart update rate, config object initial state */
-void obj_model_setup(void);
-/*obj model loop */
-void obj_model_task(int tick);
-/*-----------------------------------------------*/
-
+/*---------------------------------------------------------------------
+************************WEAK FUNCTIONS*********************************
+----------------------------------------------------------------------*/
+void HWOBJ_Event(int obj_id);               /*hardware event handler*/
+void Dummy_Handler(OBJ_STRUCT_TypeDef *obj);/*empty handler (can be changed)*/
+void obj_model_setup(void);                 /*obj model setup, call before thread init*/
+void obj_model_task(int tick);              /*obj model loop */
+/*----------------------------------------------------------------------*/
 #endif
+/****************************end of file ********************************/
