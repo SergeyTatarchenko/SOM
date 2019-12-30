@@ -91,10 +91,10 @@ typedef union{
 	struct {
 		unsigned state : 1; /*                   -//-                   */
 		unsigned event : 1; /*                   -//-                   */
-		unsigned view  : 1; /*indicate current hardware state           */
+		unsigned rez2  : 1; /*reserve bit (add new features)            */
 		unsigned rez3  : 1; /*reserve bit (add new features)            */
 		unsigned rez4  : 1; /*reserve bit (add new features)            */
-		unsigned rez5  : 1; /*reserve bit (add new features)            */
+		unsigned view  : 1; /*indicate current hardware state           */
 		unsigned value : 1; /*enable value update from hw               */
 		unsigned en    : 1; /*state <-> view sync enable                */
 	}hardware;
@@ -252,11 +252,13 @@ typedef struct {
 /*----------------------------------------------------------------------*/
 #define idof_obj						OBJ_ID.object_id      /*id macro*/
 #define class_of_obj					OBJ_ID.object_class
-/*status macro*/
-#define obj_status						OBJ_STATUS.byte
+#define obj_status						OBJ_STATUS.byte   /*status macro*/
 #define obj_state						OBJ_STATUS.soft.state
 #define obj_event						OBJ_STATUS.soft.event
 #define extended_value					OBJ_STATUS.soft.ext
+#define obj_view						OBJ_STATUS.hardware.viev
+#define obj_upd_value					OBJ_STATUS.hardware.value
+#define obj_hw_sync						OBJ_STATUS.hardware.en
 #define obj_value						OBJ_VALUE.value    /*value macro*/
 #define obj_def_value					OBJ_VALUE.def.default_value
 #define obj_ext_value					OBJ_VALUE.extended_value.extended_value
@@ -276,9 +278,11 @@ typedef struct {
 #define value_of_obj(obj)				this_obj(obj)->obj_def_value
 /*----------------------------------------------------------------------*/
 #define obj_set_state(obj,state)		this_obj(obj)->obj_state = state
-#define obj_set_value(obj,state)		this_obj(obj)->obj_value = value
+#define obj_set_value(obj,value)		this_obj(obj)->obj_value = value
 /*----------------------------------------------------------------------*/
 #define SET_OBJ_EVENT_TRIGGER(obj_id) OBJ(obj_id).OBJ_SYNC.status.byte |= obj_event_mask
+#define FORCED_HANDLER_CALL(id)       OBJ_MODEL_CLASS.OBJ_HANDLERS[id](OBJ_MODEL_CLASS.objDefault + id)
+
 #define OBJ_Event(id)	SET_OBJ_EVENT_TRIGGER(id)
 /*----------------------------------------------------------------------*/
 /*common functions prototypes*/
@@ -289,6 +293,7 @@ void obj_hardware_create( int obj_id, int obj_class,int hwobj );
 void obj_timer_create( int obj_id, int obj_class,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT_TypeDef*) );
 void obj_sync( OBJ_STRUCT_TypeDef *instance );
 void obj_model_thread( void );
+void obj_model_loop( int tick );
 void obj_event_fnct( int obj_id );
 /*----------------------------------------------------------------------*/
 /*serial port functions prototypes*/

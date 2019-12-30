@@ -166,8 +166,14 @@ void obj_model_thread( void )
 
 void obj_sync( OBJ_STRUCT_TypeDef *instance )
 {	
+	if((instance->OBJ_SYNC.status.byte & obj_status_mask)
+	!= (instance->OBJ_STATUS.byte & obj_status_mask) )           /*call event function if state change*/
+	{
+		instance->OBJ_STATUS.byte = instance->OBJ_SYNC.status.byte; /*sync external and internal status*/
+		obj_event_fnct(instance->OBJ_ID.object_id);
+	}
 	if(instance->OBJ_SYNC.status.byte & obj_event_mask)             /*if event trigger enable call event function */
-	{	
+	{
 		instance->OBJ_SYNC.status.byte &= ~obj_event_mask;          /*trigger reset*/
 		instance->OBJ_STATUS.byte = instance->OBJ_SYNC.status.byte; /*sync external and internal status*/
 		obj_event_fnct(instance->OBJ_ID.object_id);
@@ -307,34 +313,43 @@ void OBJ_task_init(OBJ_MODEL_MEM_ALLOCATION_TypeDef *mem_stack,int tick_update_r
 #ifdef USE_RTOS
 	#ifdef USE_SERIAL_PORT
 		xMutex_USART_BUSY = xSemaphoreCreateMutex();
-		usart_receive_buffer = xQueueCreate(MES_BUF_SIZE,sizeof(USART_FRAME_TypeDef));	
+		usart_receive_buffer = xQueueCreate(MES_BUF_SIZE,sizeof(USART_FRAME_TypeDef));
 	#endif
 	xTaskCreate(_task__OBJ_model_thread,"main loop",mem_stack->stack_user, NULL,mem_stack->user_priority, NULL );
 	xTaskCreate(_task__OBJ_data_rx,"rx handler",mem_stack->stack_tx_rx, NULL,mem_stack->rx_priority, NULL );
 #endif	
 }
 
-/*software core of object model (1 ms tick)*/
-void _task__OBJ_model_thread (void *pvParameters){
+/*software core of object model with RTOS (1 ms tick)*/
+void _task__OBJ_model_thread (void *pvParameters)
+{
 	static volatile int tick = 0;
 	static const int overload = 3600000UL;
-	
-	for(;;){
-		
-		obj_model_task(tick);
-		if(tick <= overload ){
+	for(;;)
+	{
+		if(tick <= overload )
+		{
 			tick++;
 		}
-		else{
+		else
+		{
 			tick = 0;
 		}
-		obj_model_thread();
-		vTaskDelay(tick_1ms);		
+		obj_model_loop(tick);
+		vTaskDelay(tick_1ms);
 	}
 }
 
+/*main loop*/
+void obj_model_loop( int tick )
+{
+	obj_model_thread();
+	obj_model_task(tick);
+}
+
 /*receive thread of the object model*/
-void _task__OBJ_data_rx (void *pvParameters){
+void _task__OBJ_data_rx (void *pvParameters)
+{
 #ifdef USE_SERIAL_PORT
 	USART_FRAME_TypeDef buf_usart;
 #endif

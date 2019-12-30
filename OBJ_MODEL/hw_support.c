@@ -7,16 +7,7 @@
 #include "hw_support.h"
 /*-----------------------------------------------*/
 #if HARDWARE_OBJECT == TRUE
-/*obj model ADC driver, get pointer to adc data array */
-void obj_adc_driver(uint16_t* data)
-{
-	int j = 0;
-	for(int i = adc_0;i < (adc_0 + NUM_OF_OBJ_ADC);i++)
-	{
-	//	obj_hw_value(HW_OBJ[i],data[j]);
-		j++;
-	}
-}
+
 /*obj model input driver, get pointer to inputs register array */
 void obj_input_driver(uint8_t *registr,int num_of_inputs,int reg_size,OBJ_HW input)
 {
@@ -35,35 +26,46 @@ void obj_input_driver(uint8_t *registr,int num_of_inputs,int reg_size,OBJ_HW inp
 	}
 }
 #endif
-
-/*obj model hw snap state to state */
+#ifdef USE_HWOBJ
+/*----------------------------------------------------------------------
+obj value driver from memory to value field
+----------------------------------------------------------------------*/
+void hw_obj_value_driver(uint16_t *data_pointer,int offset,int size)
+{	int i = 0;
+	for(i = 0; i <size; i ++)
+	{
+		obj_hw_value(OBJ_MODEL_CLASS.HW_OBJ[offset + i],data_pointer[i]);
+	}
+}
+#endif
+/*----------------------------------------------------------------------
+obj model hw snap state to state, sync when en bit enable in status
+----------------------------------------------------------------------*/
 void obj_hw_state(OBJ_STRUCT_TypeDef *obj,uint8_t input)
 {
-//	if(obj->obj_hardware){
-//		if(input != obj->obj_state)
-//		{
-//			/*event to SOM*/
-//			if(!obj->obj_event)
-//			{
-//				obj->obj_state = input;
-//			}
-//			obj_update(obj->idof_obj);
-//		}
-//	}
+	uint8_t id = obj->OBJ_ID.object_id;
+	if(obj->obj_hw_sync){
+		if(input != obj->obj_state)
+		{
+			obj->obj_state = input;
+			FORCED_HANDLER_CALL(id);
+		}
+	}
 }
-
-/*obj model hw snap value to value */
+/*----------------------------------------------------------------------
+obj model hw snap value to value,use default value field 
+----------------------------------------------------------------------*/
 void obj_hw_value(OBJ_STRUCT_TypeDef *obj,uint16_t value)
 {
-//	if(obj->obj_hardware)
-//	{
-//		/* value update */
-//		if(value != obj->obj_value)
-//		{
-//			obj->obj_value = value;
-//			obj_update(obj->idof_obj);
-//		}
-//	}
+	uint8_t id = obj->OBJ_ID.object_id;
+	if(obj->obj_upd_value)
+	{
+		if(value != obj->OBJ_VALUE.def.default_value)
+		{
+			obj->OBJ_VALUE.def.default_value = value;
+			FORCED_HANDLER_CALL(id);
+		}
+	}
 }
 
 
