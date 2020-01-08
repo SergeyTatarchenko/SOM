@@ -25,7 +25,7 @@ v 0.6
            index          |     class        |   type    | hw_snap   |    delay    |   Handler         
 ----------------------------------------------------------------------------------------------------------;
 */
-#define _obj_config_	\
+#define _obj_cofig_	\
 {     obj_STATUS          ,IND_obj_CAS       ,obj_soft   ,   NSD     ,  NSD        ,NSD                  }, \
 {     obj_TEST            ,IND_obj_CAS       ,obj_soft   ,   NSD     ,  NSD        ,NSD                  }
 

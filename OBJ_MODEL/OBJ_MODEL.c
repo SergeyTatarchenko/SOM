@@ -319,7 +319,7 @@ void OBJ_task_init(OBJ_MODEL_MEM_ALLOCATION_TypeDef *mem_stack,int tick_update_r
 	xTaskCreate(_task__OBJ_data_rx,"rx handler",mem_stack->stack_tx_rx, NULL,mem_stack->rx_priority, NULL );
 #endif	
 }
-
+#ifdef USE_RTOS
 /*software core of object model with RTOS (1 ms tick)*/
 void _task__OBJ_model_thread (void *pvParameters)
 {
@@ -339,7 +339,7 @@ void _task__OBJ_model_thread (void *pvParameters)
 		vTaskDelay(tick_1ms);
 	}
 }
-
+#endif	
 /*main loop*/
 void obj_model_loop( int tick )
 {

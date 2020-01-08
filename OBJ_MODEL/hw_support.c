@@ -6,8 +6,7 @@
 *************************************************/
 #include "hw_support.h"
 /*-----------------------------------------------*/
-#if HARDWARE_OBJECT == TRUE
-
+#ifdef USE_HWOBJ
 /*obj model input driver, get pointer to inputs register array */
 void obj_input_driver(uint8_t *registr,int num_of_inputs,int reg_size,OBJ_HW input)
 {
@@ -26,6 +25,7 @@ void obj_input_driver(uint8_t *registr,int num_of_inputs,int reg_size,OBJ_HW inp
 	}
 }
 #endif
+
 #ifdef USE_HWOBJ
 /*----------------------------------------------------------------------
 obj value driver from memory to value field
