@@ -1,7 +1,7 @@
 /*************************************************************************
 * File Name          : OBJ_MODEL.h
 * Author             : Tatarchenko S.
-* Version            : v 1.6
+* Version            : v 1.6.1
 * Description        : header for OBJ_MODEL.c 
 *************************************************************************/
 #ifndef OBJ_MODEL_H_
@@ -81,7 +81,7 @@ typedef union{
 		unsigned state : 1;	/*state bit, display current object status  */
 		unsigned event : 1; /*event bit setting calls object handler    */
 		unsigned ext   : 1;	/*extended value (0 - default, 1 - extended)*/
-		unsigned rez3  : 1; /*reserve bit (add new features)            */
+		unsigned txt  : 1;  /*enable txt block update (if exist)        */
 		unsigned rez4  : 1; /*reserve bit (add new features)            */
 		unsigned rez5  : 1; /*reserve bit (add new features)            */
 		unsigned rez6  : 1; /*reserve bit (add new features)            */
@@ -264,7 +264,7 @@ typedef struct {
 #define obj_ext_value					OBJ_VALUE.extended_value.extended_value
 #define obj_text_page_content			OBJ_VALUE.info_block.page_content
 #define obj_text_page_number			OBJ_VALUE.info_block.page_number
-#define obj_text_num_of_pages			OBJ_VALUE.info_block.page_content
+#define obj_text_num_of_pages			OBJ_VALUE.info_block.num_of_pages
 #define obj_type_soft					OBJ_BIND.soft      /*bind macro */
 #define obj_type_hardware				OBJ_BIND.hardware
 #define obj_type_timer					OBJ_BIND.timer
@@ -282,7 +282,8 @@ typedef struct {
 /*----------------------------------------------------------------------*/
 #define SET_OBJ_EVENT_TRIGGER(obj_id) OBJ(obj_id).OBJ_SYNC.status.byte |= obj_event_mask
 #define FORCED_HANDLER_CALL(id)       OBJ_MODEL_CLASS.OBJ_HANDLERS[id](OBJ_MODEL_CLASS.objDefault + id)
-
+#define SET_OBJ_TXT_UPDATE_EN(id)	  OBJ(id).OBJ_STATUS.soft.txt = 1
+#define SET_OBJ_TXT_UPDATE_DIS(id)	  OBJ(id).OBJ_STATUS.soft.txt = 0
 #define OBJ_Event(id)	SET_OBJ_EVENT_TRIGGER(id)
 /*----------------------------------------------------------------------*/
 /*common functions prototypes*/
@@ -295,6 +296,7 @@ void obj_sync( OBJ_STRUCT_TypeDef *instance );
 void obj_model_thread( void );
 void obj_model_loop( int tick );
 void obj_event_fnct( int obj_id );
+uint8_t obj_bind_txt_block(unsigned char *text_block,int text_block_size,int obj_id);
 /*----------------------------------------------------------------------*/
 /*serial port functions prototypes*/
 void sp_all_obj_sync( void );

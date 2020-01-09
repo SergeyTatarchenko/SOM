@@ -1,7 +1,7 @@
 /************************************************************************
 * File Name          : OBJ_MODEL.c
 * Author             : Tatarchenko S.
-* Version            : v 1.6
+* Version            : v 1.6.1
 * Description        : Simple Obj Model 
 *************************************************************************/
 #include "OBJ_MODEL.h"
@@ -27,10 +27,10 @@ xQueueHandle usart_receive_buffer;
 
 OBJ_MODEL_CLASS_TypeDef OBJ_MODEL_CLASS;
 /*----------------------------------------------------------------------*/
-/*
-obj model init function, fill struct fields, snap handlers,fill hardware 
-and soft timer objects; 
-*/
+
+/*----------------------------------------------------------------------
+The function of creating an object model (main initialization function)
+-----------------------------------------------------------------------*/
 void obj_model_init()
 {
 	int i = 0;
@@ -62,10 +62,10 @@ void obj_model_init()
 		}
 	}
 }
-
-/* 
-object create and handler mapping function
-*/
+/*----------------------------------------------------------------------
+function of placing objects in the model’s memory according to 
+the input array of structures with OBJ_INIT_TypeDef type
+-----------------------------------------------------------------------*/
 void obj_bind(OBJ_INIT_TypeDef* _model_init_,int _model_size_)
 {
 	int i = 0;
@@ -99,10 +99,9 @@ void obj_bind(OBJ_INIT_TypeDef* _model_init_,int _model_size_)
 		}
 	}
 }
-
-/*
-	create object function
-*/
+/*----------------------------------------------------------------------
+function creates a soft object (standard type)
+-----------------------------------------------------------------------*/
 void obj_soft_create( int obj_id, int obj_class )
 {
 	if(obj_id > num_of_all_obj)
@@ -115,7 +114,10 @@ void obj_soft_create( int obj_id, int obj_class )
 		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_TYPE.soft = obj_soft;
 	}
 }
-
+/*----------------------------------------------------------------------
+the function creates an object with a binding to the hardware platform 
+with a call to a weak separate handler
+-----------------------------------------------------------------------*/
 #ifdef USE_HWOBJ
 void  obj_hardware_create( int obj_id, int obj_class,int hwobj )
 {
@@ -133,7 +135,9 @@ void  obj_hardware_create( int obj_id, int obj_class,int hwobj )
 	}
 }
 #endif
-
+/*----------------------------------------------------------------------
+function creates an object with a timer type (RTOS only)
+-----------------------------------------------------------------------*/
 #ifdef USE_TIMERS
 void  obj_timer_create( int obj_id, int obj_class,uint16_t delay,void (*handler_pointer)(OBJ_STRUCT_TypeDef*) )
 {
@@ -154,7 +158,9 @@ void  obj_timer_create( int obj_id, int obj_class,uint16_t delay,void (*handler_
 	}
 }
 #endif
-
+/*----------------------------------------------------------------------
+trigger check cycle of all model objects
+-----------------------------------------------------------------------*/
 void obj_model_thread( void )
 {
 	int i = 0;
@@ -163,7 +169,9 @@ void obj_model_thread( void )
 		obj_sync(OBJ_MODEL_CLASS.objDefault + i);
 	}
 }
-
+/*----------------------------------------------------------------------
+the function checks for an event trigger or object state change
+-----------------------------------------------------------------------*/
 void obj_sync( OBJ_STRUCT_TypeDef *instance )
 {	
 	if((instance->OBJ_SYNC.status.byte & obj_status_mask)
@@ -179,7 +187,9 @@ void obj_sync( OBJ_STRUCT_TypeDef *instance )
 		obj_event_fnct(instance->OBJ_ID.object_id);
 	}
 }
-
+/*----------------------------------------------------------------------
+the function raises an object event depending on its type
+-----------------------------------------------------------------------*/
 /* object event function, result depends from obj type */
 void obj_event_fnct( int obj_id )
 {
@@ -191,6 +201,8 @@ void obj_event_fnct( int obj_id )
 			HWOBJ_Event(obj_id);
 		}
 		#endif
+		/* call obj handler */
+		OBJ_MODEL_CLASS.OBJ_HANDLERS[obj_id](OBJ_MODEL_CLASS.objDefault + obj_id);
 		#ifdef USE_TIMERS
 		if((OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.TimerID != 0)
 		&&(OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_TYPE.timer == obj_timer))
@@ -199,11 +211,46 @@ void obj_event_fnct( int obj_id )
 			return;
 		}
 		#endif
-		/* call obj handler */
-		OBJ_MODEL_CLASS.OBJ_HANDLERS[obj_id](OBJ_MODEL_CLASS.objDefault + obj_id);
 	}
 }
-
+/*----------------------------------------------------------------------
+ The function binds a text block to the object value field
+-----------------------------------------------------------------------*/
+uint8_t obj_bind_txt_block(unsigned char *text_block,int text_block_size,int obj_id)
+{
+	uint8_t num_of_pages;
+	if((text_block_size > 0xFF)&&(*text_block != NULL))	/*data input restriction*/
+	{
+		return FALSE;
+	}
+	else					   
+	{
+		if(text_block_size % 2 == 0)
+		{
+			num_of_pages = text_block_size/2; /*even number of pages*/ 
+		}
+		else
+		{
+			num_of_pages = text_block_size/2 + 1; /*odd number of pages*/ 
+		}
+		OBJ_MODEL_CLASS.text_blocks[obj_id] = text_block; /*bind text block to obj array*/
+		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].obj_text_num_of_pages = num_of_pages; 
+		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].obj_text_page_number = 0;
+		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].obj_text_page_content = *(uint16_t*)text_block;
+		return TRUE;
+	}
+}
+/*----------------------------------------------------------------------
+function of updating textual data field
+-----------------------------------------------------------------------*/
+void obj_txt_block_update(int obj_id)
+{
+	 
+} 
+/*----------------------------------------------------------------------
+The function receives data from the message received via the serial port 
+and sets model triggers
+-----------------------------------------------------------------------*/
 void sp_mes_receive( USART_FRAME_TypeDef *mes )
 {
 	int i = 0;
@@ -244,7 +291,9 @@ void sp_mes_receive( USART_FRAME_TypeDef *mes )
 		obj->OBJ_VALUE = mes->d_struct.OBJ_VALUE;
 	}
 }
-
+/*----------------------------------------------------------------------
+function of sending information about all objects via the serial port
+-----------------------------------------------------------------------*/
 #ifdef USE_SERIAL_PORT
 void sp_all_obj_sync( void )
 {
@@ -305,7 +354,9 @@ void sp_all_obj_sync( void )
 #endif
 /*----------------------------------------------------------------------*/
 
-/*task creation function for object model*/
+/*----------------------------------------------------------------------
+function to create tasks of the object model (RTOS only)
+-----------------------------------------------------------------------*/
 void OBJ_task_init(OBJ_MODEL_MEM_ALLOCATION_TypeDef *mem_stack,int tick_update_rate)
 {
 	obj_model_init();
@@ -319,6 +370,9 @@ void OBJ_task_init(OBJ_MODEL_MEM_ALLOCATION_TypeDef *mem_stack,int tick_update_r
 	xTaskCreate(_task__OBJ_data_rx,"rx handler",mem_stack->stack_tx_rx, NULL,mem_stack->rx_priority, NULL );
 #endif	
 }
+/*----------------------------------------------------------------------
+object model main task (RTOS only)
+-----------------------------------------------------------------------*/
 #ifdef USE_RTOS
 /*software core of object model with RTOS (1 ms tick)*/
 void _task__OBJ_model_thread (void *pvParameters)
@@ -339,15 +393,18 @@ void _task__OBJ_model_thread (void *pvParameters)
 		vTaskDelay(tick_1ms);
 	}
 }
-#endif	
-/*main loop*/
+#endif
+/*----------------------------------------------------------------------
+object model main loop
+-----------------------------------------------------------------------*/
 void obj_model_loop( int tick )
 {
 	obj_model_thread();
 	obj_model_task(tick);
 }
-
-/*receive thread of the object model*/
+/*----------------------------------------------------------------------
+message processing task of object model (RTOS only)
+-----------------------------------------------------------------------*/
 void _task__OBJ_data_rx (void *pvParameters)
 {
 #ifdef USE_SERIAL_PORT
@@ -364,29 +421,44 @@ void _task__OBJ_data_rx (void *pvParameters)
 /*---------------------------------------------------------------------
 ************************WEAK FUNCTIONS*********************************
 ----------------------------------------------------------------------*/
-/*usart message*/
+
+/*----------------------------------------------------------------------
+function of sending messages via serial port 
+(weak, may be defined elsewhere)
+-----------------------------------------------------------------------*/
 void __attribute__((weak)) send_usart_message(uint8_t *message,uint32_t buf_size)
 {
 	
 }
-/*obj model setup, config usart update rate, config object initial state */
+/*----------------------------------------------------------------------
+initial settings function, called after model initialization
+(weak, may be defined elsewhere)
+-----------------------------------------------------------------------*/
 void __attribute__((weak)) obj_model_setup(void)
 {
 	
 }
-/*obj model loop*/
+/*----------------------------------------------------------------------
+model subtask, any necessary cyclic executable code
+(weak, may be defined elsewhere)
+-----------------------------------------------------------------------*/
 void __attribute__((weak)) obj_model_task(int tick)
 {
 	
 }
-/*empty handler*/
+/*----------------------------------------------------------------------
+empty handler
+(weak, may be defined elsewhere)
+-----------------------------------------------------------------------*/
 void __attribute__((weak)) Dummy_Handler(OBJ_STRUCT_TypeDef *obj)
 {	
 }
-
+/*----------------------------------------------------------------------
+a separate handler that is called by the hardware object
+(weak, may be defined elsewhere)
+-----------------------------------------------------------------------*/
 void __attribute__((weak)) HWOBJ_Event(int obj_id) 
 {
 	
 }
-
-
+/*------------------------end of file----------------------------------*/
