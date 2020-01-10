@@ -1,9 +1,4 @@
-/*************************************************************************
-* File Name          : OBJ_MODEL.h
-* Author             : Tatarchenko S.
-* Version            : v 1.6.1
-* Description        : header for OBJ_MODEL.c 
-*************************************************************************/
+
 #ifndef OBJ_MODEL_H_
 #define	OBJ_MODEL_H_
 /*----------------------------------------------------------------------*/
@@ -301,7 +296,7 @@ uint8_t obj_bind_txt_block(unsigned char *text_block,int text_block_size,int obj
 /*serial port functions prototypes*/
 void sp_all_obj_sync( void );
 void sp_mes_receive( USART_FRAME_TypeDef *mes );
-
+uint16_t sp_calc_crc( USART_FRAME_TypeDef *mes );
 /*----------------------------------------------------------------------*/
 #define obj_event_mask					0x02
 #define obj_status_mask					0x01

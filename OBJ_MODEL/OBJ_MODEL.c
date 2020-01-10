@@ -461,4 +461,19 @@ void __attribute__((weak)) HWOBJ_Event(int obj_id)
 {
 	
 }
+/*----------------------------------------------------------------------
+crc calculation function
+(weak, may be defined elsewhere)
+-----------------------------------------------------------------------*/
+uint16_t __attribute__((weak))  sp_calc_crc( USART_FRAME_TypeDef *mes ) 
+{
+	int i = 0;
+	uint16_t _CRC = 0;
+	
+	for(i = LEN_START; i < LEN_USART_MSG_OBJ - (LEN_CRC + LEN_STOP); i++)
+	{
+		_CRC += mes->byte[i];
+	}
+	return _CRC;
+}
 /*------------------------end of file----------------------------------*/
