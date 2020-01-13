@@ -58,7 +58,7 @@ obj model hw snap value to value,use default value field
 void obj_hw_value(OBJ_STRUCT_TypeDef *obj,uint16_t value)
 {
 	uint8_t id = obj->OBJ_ID.object_id;
-	if(obj->obj_upd_value)
+	if(!obj->obj_upd_value)
 	{
 		if(value != obj->OBJ_VALUE.def.default_value)
 		{

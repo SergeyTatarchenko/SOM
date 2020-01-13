@@ -279,7 +279,7 @@ typedef struct {
 #define FORCED_HANDLER_CALL(id)       OBJ_MODEL_CLASS.OBJ_HANDLERS[id](OBJ_MODEL_CLASS.objDefault + id)
 #define SET_OBJ_TXT_UPDATE_EN(id)	  OBJ(id).OBJ_STATUS.soft.txt = 1
 #define SET_OBJ_TXT_UPDATE_DIS(id)	  OBJ(id).OBJ_STATUS.soft.txt = 0
-#define OBJ_Event(id)	SET_OBJ_EVENT_TRIGGER(id)
+#define OBJ_Event(id)				  SET_OBJ_EVENT_TRIGGER(id)
 /*----------------------------------------------------------------------*/
 /*common functions prototypes*/
 void obj_model_init( void );

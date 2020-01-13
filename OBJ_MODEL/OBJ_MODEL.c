@@ -201,8 +201,6 @@ void obj_event_fnct( int obj_id )
 			HWOBJ_Event(obj_id);
 		}
 		#endif
-		/* call obj handler */
-		OBJ_MODEL_CLASS.OBJ_HANDLERS[obj_id](OBJ_MODEL_CLASS.objDefault + obj_id);
 		#ifdef USE_TIMERS
 		if((OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.TimerID != 0)
 		&&(OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_TYPE.timer == obj_timer))
@@ -210,6 +208,8 @@ void obj_event_fnct( int obj_id )
 			xTimerStart(OBJ_MODEL_CLASS.obj_timers[OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.TimerID],0);
 			return;
 		}
+		/* call obj handler */
+		OBJ_MODEL_CLASS.OBJ_HANDLERS[obj_id](OBJ_MODEL_CLASS.objDefault + obj_id);
 		#endif
 	}
 }
