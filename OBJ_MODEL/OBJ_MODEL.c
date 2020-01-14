@@ -180,7 +180,7 @@ void obj_sync( OBJ_STRUCT_TypeDef *instance )
 		instance->OBJ_STATUS.byte = instance->OBJ_SYNC.status.byte; /*sync external and internal status*/
 		obj_event_fnct(instance->OBJ_ID.object_id);
 	}
-	if(instance->OBJ_SYNC.status.byte & obj_event_mask)             /*if event trigger enable call event function */
+	else if(instance->OBJ_SYNC.status.byte & obj_event_mask)             /*if event trigger enable call event function */
 	{
 		instance->OBJ_SYNC.status.byte &= ~obj_event_mask;          /*trigger reset*/
 		instance->OBJ_STATUS.byte = instance->OBJ_SYNC.status.byte; /*sync external and internal status*/
@@ -208,9 +208,9 @@ void obj_event_fnct( int obj_id )
 			xTimerStart(OBJ_MODEL_CLASS.obj_timers[OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.TimerID],0);
 			return;
 		}
+		#endif
 		/* call obj handler */
 		OBJ_MODEL_CLASS.OBJ_HANDLERS[obj_id](OBJ_MODEL_CLASS.objDefault + obj_id);
-		#endif
 	}
 }
 /*----------------------------------------------------------------------
@@ -283,7 +283,7 @@ void sp_mes_receive( USART_FRAME_TypeDef *mes )
 	if(permission)
 	{
 		/*sync status and extra field on event trigger*/
-		if(mes->d_struct.OBJ_SYNC.status.byte & obj_event_mask)
+		if(mes->d_struct.OBJ_SYNC.status.byte != obj->OBJ_SYNC.status.byte)
 		{
 			obj->OBJ_SYNC = mes->d_struct.OBJ_SYNC;	
 		}

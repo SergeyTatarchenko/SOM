@@ -267,13 +267,10 @@ typedef struct {
 #define this_obj(_obj)					(OBJ_MODEL_CLASS.objDefault + _obj)
 #define OBJ(obj)						OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj]
 #define this_obj_state(obj_id)			this_obj(obj_id)->obj_state
-#define obj_state_on(obj_id)			this_obj(obj_id)->obj_state = TRUE
-#define obj_state_off(obj_id)			this_obj(obj_id)->obj_state = FALSE
+#define obj_state_on(obj_id)			this_obj(obj_id)->OBJ_SYNC.status.byte |= obj_status_mask
+#define obj_state_off(obj_id)			this_obj(obj_id)->OBJ_SYNC.status.byte &= ~obj_status_mask
 #define state_of_obj(obj)				this_obj(obj)->obj_state
 #define value_of_obj(obj)				this_obj(obj)->obj_def_value
-/*----------------------------------------------------------------------*/
-#define obj_set_state(obj,state)		this_obj(obj)->obj_state = state
-#define obj_set_value(obj,value)		this_obj(obj)->obj_value = value
 /*----------------------------------------------------------------------*/
 #define SET_OBJ_EVENT_TRIGGER(obj_id) OBJ(obj_id).OBJ_SYNC.status.byte |= obj_event_mask
 #define FORCED_HANDLER_CALL(id)       OBJ_MODEL_CLASS.OBJ_HANDLERS[id](OBJ_MODEL_CLASS.objDefault + id)
