@@ -1,4 +1,9 @@
-
+/************************************************************************
+* File Name          : OBJ_MODEL.h
+* Author             : Tatarchenko S.
+* Version            : v 1.6.1
+* Description        : Header for OBJ_MODEL.c
+*************************************************************************/
 #ifndef OBJ_MODEL_H_
 #define	OBJ_MODEL_H_
 /*----------------------------------------------------------------------*/
@@ -191,6 +196,8 @@ typedef union{
 }USART_FRAME_TypeDef;
 #pragma pack(pop)
 /*----------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------*/
 #include "obj_model_config.h"
 /*----------------------------------------------------------------------*/
 typedef struct {
@@ -314,6 +321,14 @@ uint16_t sp_calc_crc( USART_FRAME_TypeDef *mes );
 #define tick_500ms	500
 #define tick_1s		1000
 /*----------------------------------------------------------------------*/
+typedef struct {
+ uint32_t StdId;                                          /*standart ID */
+ uint32_t ExtId;                                          /*extended ID */
+ uint8_t IDE;                                  /*type of can message ID */
+ uint8_t DLC;                                  /*data lenght of message */
+ uint8_t Data[8];                                          /*data array */
+} CAN_MSG_TypeDef;
+/*----------------------------------------------------------------------*/
 //<old codebase/>
 #define board_power	board_state.bit.power
 extern BOARD_STATE	board_state;
@@ -341,6 +356,11 @@ extern OBJ_MODEL_MEM_ALLOCATION_TypeDef OBJ_MODEL_MEM_ALLOCATION;
 extern xSemaphoreHandle xMutex_USART_BUSY;
 extern xQueueHandle usart_receive_buffer;
 #endif
+
+#ifdef USE_CAN_BUS
+extern xQueueHandle can_receive_buffer;
+#endif
+
 /*---------------------------------------------------------------------
 ****************OBJ MODEL FUNCTION PROTOTYPES**************************
 ----------------------------------------------------------------------*/
@@ -349,10 +369,12 @@ void OBJ_task_init(OBJ_MODEL_MEM_ALLOCATION_TypeDef *mem_stack,int tick_update_r
 /*RTOS tasks (used onle with USE_RTOS define)*/
 void _task__OBJ_model_thread (void *pvParameters);
 void _task__OBJ_data_rx (void *pvParameters);
+void _task__can_data_rx (void *pvParameters);
 /*---------------------------------------------------------------------
 ****************SPECIFIC COMMUNICATION FUNCTIONS***********************
 ----------------------------------------------------------------------*/
 void send_usart_message(uint8_t *message,uint32_t buf_size);
+extern void general_CAN_Handler(CAN_MSG_TypeDef *msg);
 /*---------------------------------------------------------------------
 ************************WEAK FUNCTIONS*********************************
 ----------------------------------------------------------------------*/

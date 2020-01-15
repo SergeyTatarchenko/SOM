@@ -15,16 +15,20 @@ BOARD_STATE	board_state;
 number of objects created; the variable must not exceed the value of num_of_all_obj !!!
 */
 uint32_t num_of_obj;
-
+/*----------------------------------------------------------------------*/
 #ifdef USE_RTOS
 OBJ_MODEL_MEM_ALLOCATION_TypeDef OBJ_MODEL_MEM_ALLOCATION; /*tasks init struct*/
 #endif
-
+/*----------------------------------------------------------------------*/
 #ifdef USE_SERIAL_PORT
 xSemaphoreHandle xMutex_USART_BUSY;
 xQueueHandle usart_receive_buffer;
 #endif
-
+/*----------------------------------------------------------------------*/
+#ifdef USE_CAN_BUS
+xQueueHandle can_receive_buffer;
+#endif
+/*----------------------------------------------------------------------*/
 OBJ_MODEL_CLASS_TypeDef OBJ_MODEL_CLASS;
 /*----------------------------------------------------------------------*/
 
@@ -366,9 +370,15 @@ void OBJ_task_init(OBJ_MODEL_MEM_ALLOCATION_TypeDef *mem_stack,int tick_update_r
 		xMutex_USART_BUSY = xSemaphoreCreateMutex();
 		usart_receive_buffer = xQueueCreate(MES_BUF_SIZE,sizeof(USART_FRAME_TypeDef));
 	#endif
+	#ifdef USE_CAN_BUS
+		can_receive_buffer = xQueueCreate(CAN_MSG_SIZE,sizeof(CAN_MSG_TypeDef));
+	#endif
 	xTaskCreate(_task__OBJ_model_thread,"main loop",mem_stack->stack_user, NULL,mem_stack->user_priority, NULL );
-	xTaskCreate(_task__OBJ_data_rx,"rx handler",mem_stack->stack_tx_rx, NULL,mem_stack->rx_priority, NULL );
-#endif	
+	xTaskCreate(_task__OBJ_data_rx,"serial port handler",mem_stack->stack_tx_rx, NULL,mem_stack->rx_priority, NULL );
+	#ifdef USE_CAN_BUS
+	xTaskCreate(_task__can_data_rx,"CAN handler",mem_stack->stack_tx_rx, NULL,mem_stack->rx_priority, NULL );
+	#endif
+	#endif
 }
 /*----------------------------------------------------------------------
 object model main task (RTOS only)
@@ -411,10 +421,26 @@ void _task__OBJ_data_rx (void *pvParameters)
 	USART_FRAME_TypeDef buf_usart;
 #endif
 	for(;;)
-	{
-		#ifdef USE_SERIAL_PORT
+	{   
+		#ifdef USE_RTOS
+			#ifdef USE_SERIAL_PORT
 		xQueueReceive(usart_receive_buffer,&buf_usart,portMAX_DELAY);
 		sp_mes_receive(&buf_usart);
+			#endif
+		#endif
+	}
+}
+/*----------------------------------------------------------------------
+message processing task of object model (RTOS only)
+-----------------------------------------------------------------------*/
+void _task__can_data_rx (void *pvParameters)
+{
+	CAN_MSG_TypeDef msg;
+	 for(;;)
+	{
+		#ifdef USE_CAN_BUS
+		xQueueReceive(can_receive_buffer,&msg,portMAX_DELAY);
+		general_CAN_Handler(&msg);
 		#endif
 	}
 }
@@ -427,6 +453,14 @@ function of sending messages via serial port
 (weak, may be defined elsewhere)
 -----------------------------------------------------------------------*/
 void __attribute__((weak)) send_usart_message(uint8_t *message,uint32_t buf_size)
+{
+	
+}
+/*----------------------------------------------------------------------
+function of receiving CAN messages fror queue
+(weak, may be defined elsewhere)
+-----------------------------------------------------------------------*/
+void __attribute__((weak)) general_CAN_Handler(CAN_MSG_TypeDef *msg)
 {
 	
 }
