@@ -34,7 +34,10 @@ void hw_obj_value_driver(uint16_t *data_pointer,int offset,int size)
 {	int i = 0;
 	for(i = 0; i <size; i ++)
 	{
-		obj_hw_value(OBJ_MODEL_CLASS.HW_OBJ[offset + i],data_pointer[i]);
+		if(OBJ_MODEL_CLASS.HW_OBJ[offset + i]->obj_upd_value == TRUE)
+		{
+			obj_hw_value(OBJ_MODEL_CLASS.HW_OBJ[offset + i],data_pointer[i]);
+		}
 	}
 }
 #endif
@@ -58,13 +61,10 @@ obj model hw snap value to value,use default value field
 void obj_hw_value(OBJ_STRUCT_TypeDef *obj,uint16_t value)
 {
 	uint8_t id = obj->OBJ_ID.object_id;
-	if(!obj->obj_upd_value)
+	if(value != obj->OBJ_VALUE.def.default_value)
 	{
-		if(value != obj->OBJ_VALUE.def.default_value)
-		{
-			obj->OBJ_VALUE.def.default_value = value;
-			FORCED_HANDLER_CALL(id);
-		}
+		obj->OBJ_VALUE.def.default_value = value;
+		FORCED_HANDLER_CALL(id);
 	}
 }
 

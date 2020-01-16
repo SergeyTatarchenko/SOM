@@ -63,6 +63,9 @@ void obj_model_init()
 		if(OBJ_MODEL_CLASS.OBJ_AREA.OBJ[i].OBJ_ID.object_class != 0)
 		{
 			num_of_obj++;
+			/* !primary status and sync byte synchronization*/
+			OBJ_MODEL_CLASS.OBJ_AREA.OBJ[i].OBJ_SYNC.status.byte =
+			OBJ_MODEL_CLASS.OBJ_AREA.OBJ[i].OBJ_STATUS.byte;
 		}
 	}
 }
@@ -135,7 +138,8 @@ void  obj_hardware_create( int obj_id, int obj_class,int hwobj )
 		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_TYPE.hardware = obj_hard;
 		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.HW_adress = hwobj; 		/*snap obj bind field with array of hwobj*/
 		OBJ_MODEL_CLASS.HW_OBJ[hwobj] = (OBJ_MODEL_CLASS.objDefault + obj_id);
-		OBJ_MODEL_CLASS.OBJ_AREA.OBJ->OBJ_STATUS.hardware.en = TRUE;			/*enable hardware port*/
+		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].obj_upd_value = TRUE;/*enable hardware port by default*/
+		OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].obj_hw_sync  = TRUE;
 	}
 }
 #endif
@@ -202,7 +206,10 @@ void obj_event_fnct( int obj_id )
 		#ifdef USE_HWOBJ
 		if(OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_TYPE.hardware == obj_hard)
 		{
-			HWOBJ_Event(obj_id);
+			if(OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].obj_hw_sync == TRUE)
+			{
+				HWOBJ_Event(obj_id);/* call special handler only if hw_sync enable*/
+			}
 		}
 		#endif
 		#ifdef USE_TIMERS
