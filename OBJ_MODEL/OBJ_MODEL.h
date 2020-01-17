@@ -273,7 +273,6 @@ typedef struct {
 /*----------------------------------------------------------------------*/
 #define this_obj(_obj)					(OBJ_MODEL_CLASS.objDefault + _obj)
 #define OBJ(obj)						OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj]
-#define this_obj_state(obj_id)			this_obj(obj_id)->obj_state
 #define obj_state_on(obj_id)			this_obj(obj_id)->OBJ_SYNC.status.byte |= obj_status_mask
 #define obj_state_off(obj_id)			this_obj(obj_id)->OBJ_SYNC.status.byte &= ~obj_status_mask
 #define state_of_obj(obj)				this_obj(obj)->obj_state

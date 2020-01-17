@@ -356,7 +356,7 @@ void sp_all_obj_sync( void )
 		usart_memory_pointer++;
 		obj_counter++;
 	}
-	#if RTOS_USAGE == TRUE
+	#ifdef USE_RTOS
 	/*mutex return in dma transfer complete interrupt*/
 	xSemaphoreTake(xMutex_USART_BUSY,portMAX_DELAY);
 	#endif

@@ -47,12 +47,10 @@ obj model hw snap state to state, sync when en bit enable in status
 void obj_hw_state(OBJ_STRUCT_TypeDef *obj,uint8_t input)
 {
 	uint8_t id = obj->OBJ_ID.object_id;
-	if(obj->obj_hw_sync){
-		if(input != obj->obj_state)
-		{
-			obj->obj_state = input;
-			FORCED_HANDLER_CALL(id);
-		}
+	if(input != obj->obj_state)
+	{
+		obj->obj_state = input;
+		FORCED_HANDLER_CALL(id);
 	}
 }
 /*----------------------------------------------------------------------
