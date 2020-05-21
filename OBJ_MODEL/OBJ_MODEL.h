@@ -1,7 +1,7 @@
 /************************************************************************
 * File Name          : OBJ_MODEL.h
 * Author             : Tatarchenko S.
-* Version            : v 1.6.1
+* Version            : v 1.6.2
 * Description        : Header for OBJ_MODEL.c
 *************************************************************************/
 #ifndef OBJ_MODEL_H_
@@ -12,44 +12,38 @@
 /*----------------------------------------------------------------------*/
 #define MAX_OBJ	0xFF
 /*----------------------------------------------------------------------*/
-/* enums to describe types and priorities of objects                    */
+/*obj memory usage, use max value for default*/
+
+//add comment for this include
+#include "obj_model_config.h"
+
+
+#ifndef num_of_all_obj
+    #define num_of_all_obj MAX_OBJ
+    #ifndef NUM_OF_HWOBJ
+        #define  NUM_OF_HWOBJ MAX_OBJ
+    #endif
+    #ifndef	NUM_OF_TIMER
+        #define  NUM_OF_TIMER MAX_OBJ
+    #endif
+#endif
+
+/*
+*enums to describe types and priorities of objects 
+*/
+
 typedef enum{
     IND_obj_SWC = 1,    /*status without control, low priority          */
     IND_obj_CWS = 2,    /*control without control, medium priority      */
     IND_obj_CAS = 3,    /*control with status, high priority            */
-    IND_obj_COM = 4     /*object with extended data field, high priority*/
 }OBJECT_CLASS;
-/*----------------------------------------------------------------------*/
+
 typedef enum{
     obj_soft =  0,  /*software object, default object                   */
     obj_hard  = 1,  /*hardware object, use special hanlder              */
     obj_timer = 2,  /*software timer (with RTOS_USAGE only)             */
-    obj_text =  3   /*info object,use extended data field, contains text*/
 }OBJECT_TYPE;
-/*----------------------------------------------------------------------*/
-typedef struct{
-    uint8_t system_priority;    /*system layer tasks                    */
-    uint8_t tx_priority;        /*transmit data tasks                   */
-    uint8_t rx_priority;        /*receive data tasks                    */
-    uint8_t user_priority;      /*user tasks                            */
-    uint_least16_t stack_tx_rx; /*stack size for data transmit/receive  */
-    uint_least16_t stack_user;  /*stack for user layer tasks and threads*/
-    uint8_t tick_update_rate;   /*object model tick update rate         */
-}OBJ_MODEL_MEM_ALLOCATION_TypeDef;
-/*----------------------------------------------------------------------*/
-typedef union{
-    uint8_t status;
-    struct{
-        unsigned power:1;
-        unsigned mode:1;
-        unsigned hwobj:1;
-        unsigned debug:1;
-        unsigned model_on:1;
-        unsigned rez5:1;
-        unsigned rez6:1;
-        unsigned rez7:1;
-    }bit;
-}BOARD_STATE;
+
 /*------------------------------------------------------------------------
 **********************OBJECT STRUCTURE DESCRIPTION************************
 ------------------------------------------------------------------------*/
@@ -58,12 +52,10 @@ typedef struct{
     uint8_t object_id;      /*object id in memory space                 */
     uint8_t object_class;   /*object class and priority                 */
 }OBJ_ID_TypeDef;
-#pragma pack(pop)
-/*----------------------------------------------------------------------*/
-#pragma pack(push,1)
+
 typedef union{
     uint8_t byte;       /*status field, control and view object state   */
-    /*-------------------default field 8 bit----------------------------*/
+
     struct{
         unsigned bit_0:1;
         unsigned bit_1:1;
@@ -74,7 +66,7 @@ typedef union{
         unsigned bit_6:1;
         unsigned bit_7:1;		
     }def;
-    /*-------------------field for soft object(default)-----------------*/
+
     struct{
         unsigned state : 1; /*state bit, display current object status  */
         unsigned event : 1; /*event bit setting calls object handler    */
@@ -85,7 +77,7 @@ typedef union{
         unsigned rez6  : 1; /*reserve bit (add new features)            */
         unsigned rez7  : 1; /*reserve bit (add new features)            */
     }soft;
-    /*----------------field for hardware object-------------------------*/
+
     struct {
         unsigned state : 1; /*                   -//-                   */
         unsigned event : 1; /*                   -//-                   */
@@ -96,10 +88,9 @@ typedef union{
         unsigned value : 1; /*enable value update from hw               */
         unsigned en    : 1; /*state <-> view sync enable                */
     }hardware;
+
 }OBJ_STATUS_TypeDef;
-#pragma pack(pop)
-/*----------------------------------------------------------------------*/
-#pragma pack(push,1)
+
 typedef struct {
     union{
         uint8_t byte;                   /* sync with object status byte */
@@ -116,24 +107,18 @@ typedef struct {
     }status;
     uint8_t extra[2];                     /* sync extra byte for future */
 }SYNC_TypeDef;
-#pragma pack(pop)
-/*----------------------------------------------------------------------*/
-#pragma pack(push,1)
+
 typedef union{
     uint8_t soft;           /*use status field soft                     */
     uint8_t hardware;       /*use status field hardware                 */
     uint8_t timer;          /*use status field soft                     */
 }OBJ_TYPE_TypeDef;
-#pragma pack(pop)
-/*----------------------------------------------------------------------*/
-#pragma pack(push,1)
+
 typedef union{
     uint8_t HW_adress;/*binding to array of hardware objects (255 max)  */
     uint8_t TimerID;  /*binding to array of software timers  (255 max)  */
 }OBJ_BIND_TypeDef;
-#pragma pack(pop)
-/*----------------------------------------------------------------------*/
-#pragma pack(push,1)
+
 typedef union{ 
     uint32_t value;                 /*value field, size - 32 bit        */
     struct{
@@ -149,8 +134,7 @@ typedef union{
         uint16_t page_content;      /* info page , size - 16 bit        */
     }info_block;
 }OBJ_VALUE_TypeDef;
-#pragma pack(pop)
-/*----------------------------------------------------------------------*/
+
 typedef struct{
     OBJ_ID_TypeDef OBJ_ID;              /*           16 bit (2 byte)    */
     OBJ_STATUS_TypeDef OBJ_STATUS;      /*            8 bit (1 byte)    */
@@ -159,7 +143,8 @@ typedef struct{
     OBJ_BIND_TypeDef OBJ_BIND;          /*            8 bit (1 byte)    */
     OBJ_VALUE_TypeDef OBJ_VALUE;        /*           32 bit (4 byte)    */
 }OBJ_STRUCT_TypeDef;
-/*----------------------------------------------------------------------*/
+
+
 #define LEN_START   2
 #define LEN_NETW    1
 #define LEN_ID      1
@@ -170,8 +155,7 @@ typedef struct{
 #define LEN_HEAD_SIZE           (LEN_START +     LEN_NETW + LEN_ID   )
 #define LEN_OBJ                 (LEN_INDEX +     LEN_DATA + LEN_CRC  )
 #define	LEN_USART_MSG_OBJ       (LEN_HEAD_SIZE + LEN_OBJ  + LEN_STOP )
-/*----------------------------------------------------------------------*/
-#pragma pack(push,1)
+
 typedef union{
     uint8_t byte[LEN_USART_MSG_OBJ];    /* usart frame array (17 byte)  */
     struct{
@@ -186,37 +170,35 @@ typedef union{
         uint8_t stop_seq;                         /*stop 8 bit (1 byte) */
     }d_struct;
 }USART_FRAME_TypeDef;
+
 #pragma pack(pop)
-/*----------------------------------------------------------------------*/
-#include "obj_model_config.h"
-/*----------------------------------------------------------------------*/
+
+
+
 typedef struct {
-	OBJ_STRUCT_TypeDef *objDefault;		/*pointer to the beginning 
-										  of the object model			*/
-	/*static memory array for objects (size define with num_of_all_obj) */
-	union{
-		uint8_t OBJ_MEMORY_AREA[sizeof(OBJ_STRUCT_TypeDef)*num_of_all_obj];
-		OBJ_STRUCT_TypeDef OBJ[num_of_all_obj];
-	}OBJ_AREA;
-	/*array of pointers to object handler functions*/
-	void ((*OBJ_HANDLERS[num_of_all_obj+1]))(void*);
-	#ifdef USE_HWOBJ
-	/*array of pointers to hardware objects*/
-	OBJ_STRUCT_TypeDef *HW_OBJ[NUM_OF_HWOBJ];
-	#endif
-	#ifdef USE_TIMERS
-	/*array of pointers to RTOS software timers*/
-	TimerHandle_t obj_timers[NUM_OF_TIMER];
-	#endif
-	/*array for transmittion with serial port*/
-	#ifdef USE_SERIAL_PORT	
-	uint8_t USART_DATA[sizeof(USART_FRAME_TypeDef)*num_of_all_obj];
-	#endif
-	/*array of pointers to text( max text block size 0xff )*/ 
-	unsigned char *text_blocks[num_of_all_obj];
+    OBJ_STRUCT_TypeDef *objDefault;		/*pointer to the beginning 
+                                        of the object model*/
+    union{
+        uint8_t OBJ_MEMORY_AREA[sizeof(OBJ_STRUCT_TypeDef)*num_of_all_obj];
+        OBJ_STRUCT_TypeDef OBJ[num_of_all_obj];
+    }OBJ_AREA;
+    void ((*OBJ_HANDLERS[num_of_all_obj+1]))(void*);/*array of pointers to 
+                                                     object handler functions*/
+#ifdef USE_HWOBJ
+    OBJ_STRUCT_TypeDef *HW_OBJ[NUM_OF_HWOBJ];
+#endif
+
+#ifdef USE_TIMERS 
+    TimerHandle_t obj_timers[NUM_OF_TIMER];
+#endif
+
+#ifdef USE_SERIAL_PORT	
+    uint8_t USART_DATA[sizeof(USART_FRAME_TypeDef)*num_of_all_obj];
+#endif
+
+    unsigned char *text_blocks[num_of_all_obj];
 }OBJ_MODEL_CLASS_TypeDef;
-/*----------------------------------------------------------------------*/
-#pragma pack(push,1)
+
 typedef struct {
     uint8_t id;                                        /* id (0xFF max) */
     OBJECT_CLASS obj_class;                         /* snap to priority */
@@ -225,23 +207,10 @@ typedef struct {
     uint16_t delay;                    /* obj start delay (timers only) */
     void (*handler_pointer)(OBJ_STRUCT_TypeDef*); /* pointer to handler */
 }OBJ_INIT_TypeDef;
-#pragma pack(pop)
-/*----------------------------------------------------------------------*/
-/*obj memory usage, use max value for default*/
-#ifndef num_of_all_obj
-     #define num_of_all_obj MAX_OBJ
-#endif
-#ifdef num_of_all_obj
-    /* hardware obj array, use max value for default*/
-    #ifndef NUM_OF_HWOBJ
-        #define  NUM_OF_HWOBJ MAX_OBJ
-    #endif
-    /* soft timer obj array, use max value for default*/
-    #ifndef	NUM_OF_TIMER
-        #define  NUM_OF_TIMER MAX_OBJ
-    #endif
-#endif
-/*----------------------------------------------------------------------*/
+
+/*common define*/
+
+#define OBJ_STRUCT                      OBJ_STRUCT_TypeDef
 #define idof_obj                        OBJ_ID.object_id      /*id macro*/
 #define class_of_obj                    OBJ_ID.object_class
 #define obj_status                      OBJ_STATUS.byte   /*status macro*/
@@ -332,20 +301,23 @@ typedef struct {
 ----------------------------------------------------------------------*/
 extern OBJ_MODEL_CLASS_TypeDef OBJ_MODEL_CLASS;
 extern uint32_t num_of_obj;
-extern OBJ_MODEL_MEM_ALLOCATION_TypeDef OBJ_MODEL_MEM_ALLOCATION;
 
 #ifdef USE_SERIAL_PORT
-    extern xSemaphoreHandle xMutex_USART_BUSY;
-    extern xQueueHandle usart_receive_buffer;
+    #ifdef USE_RTOS
+        extern xSemaphoreHandle xMutex_USART_BUSY;
+        extern xQueueHandle usart_receive_buffer;
+    #endif
 #endif
 
 #ifdef USE_CAN_BUS
-    extern xQueueHandle can_receive_buffer;
+    #ifdef USE_RTOS
+        extern xQueueHandle can_receive_buffer;
+    #endif
 #endif
+
 /*---------------------------------------------------------------------
 ****************OBJ MODEL FUNCTION PROTOTYPES**************************
 ----------------------------------------------------------------------*/
-void OBJ_task_init(OBJ_MODEL_MEM_ALLOCATION_TypeDef *mem_stack,int tick_update_rate);
 void _task__OBJ_model_thread (void *pvParameters);
 void _task__OBJ_data_rx (void *pvParameters);
 void _task__can_data_rx (void *pvParameters);

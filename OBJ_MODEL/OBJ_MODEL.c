@@ -1,7 +1,7 @@
 /************************************************************************
 * File Name          : OBJ_MODEL.c
 * Author             : Tatarchenko S.
-* Version            : v 1.6.1
+* Version            : v 1.6.2
 * Description        : Simple Obj Model 
 *************************************************************************/
 #include "OBJ_MODEL.h"
@@ -15,16 +15,13 @@ the value of num_of_all_obj !!!
 uint32_t num_of_obj;
 
 #ifdef USE_RTOS
-    OBJ_MODEL_MEM_ALLOCATION_TypeDef OBJ_MODEL_MEM_ALLOCATION;
-#endif
-
-#ifdef USE_SERIAL_PORT
-    xSemaphoreHandle xMutex_USART_BUSY;
-    xQueueHandle usart_receive_buffer;
-#endif
-
-#ifdef USE_CAN_BUS
-    xQueueHandle can_receive_buffer;
+    #ifdef USE_SERIAL_PORT
+        xSemaphoreHandle xMutex_USART_BUSY;
+        xQueueHandle usart_receive_buffer;
+    #endif
+    #ifdef USE_CAN_BUS
+        xQueueHandle can_receive_buffer;
+    #endif
 #endif
 
 OBJ_MODEL_CLASS_TypeDef OBJ_MODEL_CLASS;
@@ -188,6 +185,7 @@ void obj_sync( OBJ_STRUCT_TypeDef *instance )
 {
     if((instance->OBJ_SYNC.status.byte & obj_status_mask)
     != (instance->OBJ_STATUS.byte & obj_status_mask) )
+		{
         instance->OBJ_STATUS.byte = instance->OBJ_SYNC.status.byte;
         obj_event_fnct(instance->OBJ_ID.object_id);
     }
@@ -361,24 +359,10 @@ void sp_all_obj_sync( void )
 * name : OBJ_task_init
 * description: function to create tasks of the object model (RTOS only)
 */
-void OBJ_task_init(OBJ_MODEL_MEM_ALLOCATION_TypeDef *mem_stack,int tick_update_rate)
+void OBJ_task_init(void *mem_stack,int tick_update_rate)
 {
     obj_model_init();
     obj_model_setup();
-    #ifdef USE_RTOS
-        #ifdef USE_SERIAL_PORT
-            xMutex_USART_BUSY = xSemaphoreCreateMutex();
-            usart_receive_buffer = xQueueCreate(MES_BUF_SIZE,sizeof(USART_FRAME_TypeDef));
-            xTaskCreate(_task__OBJ_data_rx,"serial port handler",mem_stack->stack_tx_rx, NULL,mem_stack->rx_priority, NULL );
-        #endif
-        #ifdef USE_CAN_BUS
-            can_receive_buffer = xQueueCreate(CAN_MSG_SIZE,sizeof(CAN_MSG_TypeDef));
-        #endif
-        xTaskCreate(_task__OBJ_model_thread,"main loop",mem_stack->stack_user, NULL,mem_stack->user_priority, NULL );
-        #ifdef USE_CAN_BUS
-            xTaskCreate(_task__can_data_rx,"CAN handler",mem_stack->stack_tx_rx, NULL,mem_stack->rx_priority, NULL );
-        #endif
-    #endif
 }
 
 /*
@@ -432,22 +416,6 @@ void _task__OBJ_data_rx (void *pvParameters)
                 xQueueReceive(usart_receive_buffer,&buf_usart,portMAX_DELAY);
                 sp_mes_receive(&buf_usart);
             #endif
-        #endif
-    }
-}
-
-/*
-* name : _task__can_data_rx
-* description: message processing task of object model (RTOS only) 
-*/
-void _task__can_data_rx (void *pvParameters)
-{
-    CAN_MSG_TypeDef msg;
-     for(;;)
-    {
-        #ifdef USE_CAN_BUS
-        xQueueReceive(can_receive_buffer,&msg,portMAX_DELAY);
-        /*add hander for CAN thread*/
         #endif
     }
 }

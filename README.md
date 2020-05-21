@@ -7,12 +7,13 @@ v 0.6
 	index   - [object number in memory];
 	class   - [object priority];
 	type    - [Object type (obj_soft default)];
-	snap    - (hardware binding to the HWOBJ_Event handler (NULL default));
-	delay   - (handler call delay (obj_timer ONLY!!!, (NULL default)));
-	handler - (object handler Dummy_Handler(empty handler) default);
+	snap    - [hardware binding to the HWOBJ_Event handler (NULL default)];
+	delay   - [handler call delay (obj_timer ONLY!!!, (NULL default))];
+	handler - [object handler Dummy_Handler(empty handler) default];
 			
 3) add 	object init to 	_obj_cofig_
 4) create obj_model_config.h"
+
 define 	SOM_MODE (APP_MODE or BOOT_MODE)
 define variables:
 	USE_RTOS
