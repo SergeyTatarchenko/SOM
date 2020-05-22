@@ -158,8 +158,8 @@ void obj_timer_create( int obj_id, int obj_class,uint16_t delay,void (*handler_p
         OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_TYPE.timer = obj_timer;
         OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.TimerID = num_of_timer;	/*snap obj bind field with array of timers*/ 
         OBJ_MODEL_CLASS.obj_timers[num_of_timer] = xTimerCreate("",delay,FALSE,
-        (void*)&OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.TimerID,(void(*)(void*))handler_pointer);
-        num_of_timer++;	
+        (void*)&OBJ_MODEL_CLASS.OBJ_AREA.OBJ[obj_id].OBJ_BIND.TimerID,(TimerCallbackFunction_t)handler_pointer);
+        num_of_timer++;
     }
 }
 #endif
@@ -391,7 +391,7 @@ void _task__OBJ_model_thread (void *pvParameters)
 #endif
 
 /*
-* name : _task__OBJ_data_rx
+* name : obj_model_loop
 * description: object model main loop
 */
 void obj_model_loop( int tick )

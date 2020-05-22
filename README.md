@@ -1,6 +1,12 @@
 # SOM
- Object model programming based on FreeRTOS
-v 0.6
+ Object model programming with FreeRTOS support
+ 
+v 0.7
+structure:
+[header file describing model objects] -> [model configuration header file]->[model description header file]
+                                          [memory usage configuration file] 
+
+1) create memory_config.h and model_config.h files from templates and add to project
 1) create object name  example   " #define obj_name	(IND_obj_NULL + x)"
 2) create object init like "obj_index,class,type,snap,delay,handler in  _obj_cofig_ define	
 

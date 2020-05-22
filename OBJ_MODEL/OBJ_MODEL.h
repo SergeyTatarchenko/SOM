@@ -12,10 +12,9 @@
 /*----------------------------------------------------------------------*/
 #define MAX_OBJ	0xFF
 /*----------------------------------------------------------------------*/
-/*obj memory usage, use max value for default*/
 
-//add comment for this include
-#include "obj_model_config.h"
+#include "model_config.h"
+#include "memory_config.h"
 
 
 #ifndef num_of_all_obj
@@ -237,11 +236,12 @@ typedef struct {
 #define state_of_obj(obj)               this_obj(obj)->obj_state
 #define value_of_obj(obj)               this_obj(obj)->obj_def_value
 /*----------------------------------------------------------------------*/
-#define SET_OBJ_EVENT_TRIGGER(obj_id) OBJ(obj_id).OBJ_SYNC.status.byte |= obj_event_mask
-#define FORCED_HANDLER_CALL(id)       OBJ_MODEL_CLASS.OBJ_HANDLERS[id](OBJ_MODEL_CLASS.objDefault + id)
-#define SET_OBJ_TXT_UPDATE_EN(id)     OBJ(id).OBJ_STATUS.soft.txt = 1
-#define SET_OBJ_TXT_UPDATE_DIS(id)    OBJ(id).OBJ_STATUS.soft.txt = 0
-#define OBJ_Event(id)                 SET_OBJ_EVENT_TRIGGER(id)
+#define SET_OBJ_EVENT_TRIGGER(obj_id)   OBJ(obj_id).OBJ_SYNC.status.byte |= obj_event_mask
+#define FORCED_HANDLER_CALL(id)         OBJ_MODEL_CLASS.OBJ_HANDLERS[id](OBJ_MODEL_CLASS.objDefault + id)
+#define SET_OBJ_TXT_UPDATE_EN(id)       OBJ(id).OBJ_STATUS.soft.txt = 1
+#define SET_OBJ_TXT_UPDATE_DIS(id)      OBJ(id).OBJ_STATUS.soft.txt = 0
+#define OBJ_Event(id)                   SET_OBJ_EVENT_TRIGGER(id)
+
 /*-----------------common functions prototypes--------------------------*/
 void obj_model_init( void );
 void obj_bind( OBJ_INIT_TypeDef* _model_init_,int _model_size_ );
@@ -285,17 +285,7 @@ typedef struct {
  uint8_t Data[8];                                          /*data array */
 } CAN_MSG_TypeDef;
 /*----------------------------------------------------------------------*/
-#define TRUE    1
-#define FALSE   0
-/*------------------------------------------------------------------------
-*************************model operation mode*****************************
-------------------------------------------------------------------------*/
-#define APP_MODE    1
-#define BOOT_MODE   2
-/*----------------------------------------------------------------------*/
-#ifdef USE_RTOS
-    #include "RTOS.h"
-#endif
+
 /*---------------------------------------------------------------------
 *************************COMMON VARIABLES******************************
 ----------------------------------------------------------------------*/
